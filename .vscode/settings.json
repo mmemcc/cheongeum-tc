@@ -1,0 +1,46 @@
+{
+    "C_Cpp.intelliSenseEngine": "default",
+    // "idf.espIdfPathWin": "C:\\Users\\mjk98\\esp\\v5.2.1\\esp-idf",
+    "idf.espIdfPathWin": "${workspaceFolder}\\esp-idf",
+    "idf.pythonInstallPath": "C:\\Users\\mjk98\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+    "idf.openOcdConfigs": [
+        "interface/ftdi/esp32_devkitj_v1.cfg",
+        "target/esp32s3.cfg"
+    ],
+    "idf.toolsPathWin": "C:\\Users\\mjk98\\.espressif",
+    "idf.customExtraVars": {
+        "OPENOCD_SCRIPTS": "C:\\Users\\mjk98\\.espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20230921/openocd-esp32/share/openocd/scripts",
+        "IDF_CCACHE_ENABLE": "1",
+        "ESP_ROM_ELF_DIR": "C:\\Users\\mjk98\\.espressif\\tools\\esp-rom-elfs\\20230320/",
+        "IDF_TARGET": "esp32s3"
+    },
+    "files.associations": {
+        "spi_common.h": "c",
+        "error.h": "c",
+        "spi_master.h": "c",
+        "freertos.h": "c",
+        "event_groups.h": "c",
+        "semphr.h": "c",
+        "task.h": "c",
+        "shared.h": "c",
+        "kx022acr.h": "c",
+        "compare": "cpp",
+        "cstdint": "cpp",
+        "format": "c",
+        "cstddef": "c",
+        "i2c_master.h": "c",
+        "control.h": "c",
+        "gpio.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "ranges": "c",
+        "span": "c",
+        "sensors.h": "c",
+        "dsps_fft2r.h": "c",
+        "esp_dsp.h": "c",
+        "dsps_fft4r.h": "c"
+    },
+    "idf.portWin": "COM4",
+    "idf.flashType": "UART"
+}
