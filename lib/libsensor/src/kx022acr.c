@@ -13,10 +13,13 @@
 
 #include <ce/sensor/kx022acr.h>
 #include <ce/relay/control.h>
+#include <ce/sensor/sensors.h>
 
 static i2c_master_dev_handle_t ret_handle;
 SemaphoreHandle_t sample_sem;
 esp_timer_handle_t sample_timer;
+TaskHandle_t ce_kx022acr_task_handle;
+int16_t *psram_buffer;
 
 void sample_timer_cb(void *arg)
 {
@@ -211,29 +214,40 @@ static void ce_kx022acr_task(void *params)
 {
     // spi_device_handle_t kx022acr_device_handle = *((spi_device_handle_t *)params);
     i2c_master_dev_handle_t kx022acr_device_handle = *((i2c_master_dev_handle_t *)params);
-    int16_t *psram_buffer = heap_caps_malloc(KX022ACR_MAX_BUF_SIZE, MALLOC_CAP_SPIRAM);
+    psram_buffer = heap_caps_malloc(KX022ACR_MAX_BUF_SIZE, MALLOC_CAP_SPIRAM);
+
 
     while (1)
     {
         // 상태 변경 대기
-        EventBits_t event_bits = xEventGroupWaitBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
+        EventBits_t event_bits = xEventGroupWaitBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT1, pdTRUE, pdFALSE, portMAX_DELAY);
 
         int sample_index = 0;
+        uint8_t relay_state = ce_relay_state_global[RELAY_COMP].relay_state;
 
-        int64_t start_time = esp_timer_get_time();
-        int64_t elapsed_us = 0;
+        uint64_t start_time = esp_timer_get_time();
+        uint64_t elapsed_us = 0;
+
+        ce_sensor_info_t sensor_info = {
+            .start_time = start_time,
+            .elapsed_time = elapsed_us,
+            .relay_state = relay_state,
+            .samp_num_vib = 0,
+        };
 
         while (1)
         {
             // 릴레이 상태가 바뀌면 수집 종료
-            bool is_relay_changed = (xEventGroupGetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group) & RELAY_STATE_CHANGE_BIT) ? true : false;
+            bool is_relay_changed = (xEventGroupGetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group) & RELAY_STATE_CHANGE_BIT1) ? true : false;
             if (is_relay_changed)
             {
                 elapsed_us = esp_timer_get_time() - start_time;
                 printf("%llu us elapsed, %d samples\n", elapsed_us, sample_index);
+                sensor_info.elapsed_time = elapsed_us;
+                sensor_info.samp_num_vib = sample_index;
+                xQueueSend(ce_sensors_info_global, &sensor_info, 0);
                 break;
             }
-
             xSemaphoreTake(sample_sem, portMAX_DELAY);
 
             // 센서 데이터 수집
@@ -259,118 +273,128 @@ static void ce_kx022acr_task(void *params)
             psram_buffer[idx + 2] = z;
 
             sample_index++;
+
+            
         }
 
-        // PSRAM에 저장된 데이터 처리
+        // if (buf_save_flag == 1)
+        // {
 
-        printf("- Start time: %llu us, %llu ms elapsed, %d samples\n", start_time, elapsed_us, sample_index);
-        for (int i = 0; i < sample_index; i++) {
-            printf("Sample %d: x: %d, y: %d, z: %d\n", i, psram_buffer[i * 3], psram_buffer[i * 3 + 1], psram_buffer[i * 3 + 2]);
-        }
-        
+        //     printf("- Start time: %llu us, %llu ms elapsed, %d samples\n", start_time, elapsed_us, sample_index);
+        //     for (int i = 0; i < sample_index; i++)
+        //     {
+        //         printf("%d,%d,%d\n", psram_buffer[i * 3], psram_buffer[i * 3 + 1], psram_buffer[i * 3 + 2]);
+        //         vTaskDelay(pdMS_TO_TICKS(10)); 
+        //     }
+        //     buf_save_flag = 0;
+        // }
     }
+}
 
-    ce_error_t ce_kx022acr_init_spi(void)
+ce_error_t ce_kx022acr_init_spi(void)
+{
+    ce_error_t err;
+    spi_device_handle_t kx022acr_device_handle;
+
+    err = ce_kx022acr_pin_set_spi(&kx022acr_device_handle);
+    if (err != CE_OK)
     {
-        ce_error_t err;
-        spi_device_handle_t kx022acr_device_handle;
-
-        err = ce_kx022acr_pin_set_spi(&kx022acr_device_handle);
-        if (err != CE_OK)
-        {
-            return err;
-        }
-
-        // 센서 리셋
-        ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL2, 0b10000000);
-        vTaskDelay(pdMS_TO_TICKS(10));
-
-        ce_kx022acr_write_reg_spi(kx022acr_device_handle, INC1, 0x00);
-
-        // Standby mode 설정
-        ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL1, 0x00);
-
-        // Stream mode 설정
-        ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CNTL1, 0x28);
-        ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CNTL2, 0xC1);
-
-        // Data rate 설정
-        ce_kx022acr_write_reg_spi(kx022acr_device_handle, ODCNTL, 0xCB); // 1600Hz 설정
-
-        // 센서 동작 시작 (PC1=1, RES=1 for High Resolution)
-        ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL1, 0xC0);
-
-        uint8_t rx_data = 0x00;
-
-        ce_kx022acr_read_reg_spi(kx022acr_device_handle, WHO_AM_I, &rx_data);
-        if (rx_data != 0xC8)
-        {
-            printf("[SENSOR] WHO_AM_I 확인 실패: 0x%02X\n", rx_data);
-            return CE_ERROR_SENSOR_INIT;
-        }
-
-        if (xTaskCreatePinnedToCore(ce_kx022acr_task, "ce_kx022acr_task", 4096, &kx022acr_device_handle, 5, NULL, tskNO_AFFINITY) != pdPASS)
-        {
-            return CE_ERROR_TASK_CREATE;
-        }
-
-        return CE_OK;
+        return err;
     }
 
-    void init_sampling_timer()
+    // 센서 리셋
+    ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL2, 0b10000000);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    ce_kx022acr_write_reg_spi(kx022acr_device_handle, INC1, 0x00);
+
+    // Standby mode 설정
+    ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL1, 0x00);
+
+    // Stream mode 설정
+    ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CNTL1, 0x28);
+    ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CNTL2, 0xC1);
+
+    // Data rate 설정
+    ce_kx022acr_write_reg_spi(kx022acr_device_handle, ODCNTL, 0xCB); // 1600Hz 설정
+
+    // 센서 동작 시작 (PC1=1, RES=1 for High Resolution)
+    ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL1, 0xC0);
+
+    uint8_t rx_data = 0x00;
+
+    ce_kx022acr_read_reg_spi(kx022acr_device_handle, WHO_AM_I, &rx_data);
+    if (rx_data != 0xC8)
     {
-        sample_sem = xSemaphoreCreateBinary();
-        esp_timer_create_args_t timer_args = {
-            .callback = sample_timer_cb,
-            .name = "kx_sample_timer"};
-        esp_timer_create(&timer_args, &sample_timer);
-        esp_timer_start_periodic(sample_timer, 625); // 625us
+        printf("[SENSOR] WHO_AM_I 확인 실패: 0x%02X\n", rx_data);
+        return CE_ERROR_SENSOR_INIT;
     }
 
-    ce_error_t ce_kx022acr_init_i2c(void)
+
+    if (xTaskCreatePinnedToCore(ce_kx022acr_task, "ce_kx022acr_task", 4096, &kx022acr_device_handle, 5, NULL, tskNO_AFFINITY) != pdPASS)
     {
-        ce_error_t err;
-
-        err = ce_kx022acr_pin_set_i2c(&ret_handle);
-        if (err != CE_OK)
-        {
-            return err;
-        }
-
-        // 센서 리셋
-        ce_kx022acr_write_reg_i2c(ret_handle, CNTL2, 0b10000000);
-        vTaskDelay(pdMS_TO_TICKS(10));
-
-        // Standby mode 설정
-        ce_kx022acr_write_reg_i2c(ret_handle, CNTL1, 0x00);
-
-        ce_kx022acr_write_reg_i2c(ret_handle, CNTL3, 0b11111111);
-
-        // Stream mode 설정
-        ce_kx022acr_write_reg_i2c(ret_handle, BUF_CNTL1, 0x28);
-        ce_kx022acr_write_reg_i2c(ret_handle, BUF_CNTL2, 0xC1);
-
-        // Data rate 설정
-        ce_kx022acr_write_reg_i2c(ret_handle, ODCNTL, 0xCB); // 1600Hz 설정
-
-        // 센서 동작 시작 (PC1=1, RES=1 for High Resolution)
-        ce_kx022acr_write_reg_i2c(ret_handle, CNTL1, 0xC0);
-
-        uint8_t rx_data = 0x00;
-
-        ce_kx022acr_read_reg_i2c(ret_handle, WHO_AM_I, &rx_data, 1);
-        if (rx_data != 0xC8)
-        {
-            printf("[SENSOR] WHO_AM_I 확인 실패: 0x%02X\n", rx_data);
-            return CE_ERROR_SENSOR_INIT;
-        }
-
-        if (xTaskCreatePinnedToCore(ce_kx022acr_task, "ce_kx022acr_task", 6000, &ret_handle, 5, NULL, 1) != pdPASS)
-        {
-            return CE_ERROR_TASK_CREATE;
-        }
-
-        init_sampling_timer();
-
-        return CE_OK;
+        return CE_ERROR_TASK_CREATE;
     }
+
+    return CE_OK;
+}
+
+void init_sampling_timer()
+{
+    sample_sem = xSemaphoreCreateBinary();
+    esp_timer_create_args_t timer_args = {
+        .callback = sample_timer_cb,
+        .name = "kx_sample_timer"};
+    esp_timer_create(&timer_args, &sample_timer);
+    esp_timer_start_periodic(sample_timer, 625); // 625us
+}
+
+ce_error_t ce_kx022acr_init_i2c(void)
+{
+    ce_error_t err;
+
+    err = ce_kx022acr_pin_set_i2c(&ret_handle);
+    if (err != CE_OK)
+    {
+        return err;
+    }
+
+    // 센서 리셋
+    ce_kx022acr_write_reg_i2c(ret_handle, CNTL2, 0b10000000);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    // Standby mode 설정
+    ce_kx022acr_write_reg_i2c(ret_handle, CNTL1, 0x00);
+
+    ce_kx022acr_write_reg_i2c(ret_handle, CNTL3, 0b11111111);
+
+    // Stream mode 설정
+    ce_kx022acr_write_reg_i2c(ret_handle, BUF_CNTL1, 0x28);
+    ce_kx022acr_write_reg_i2c(ret_handle, BUF_CNTL2, 0xC1);
+
+    // Data rate 설정
+    ce_kx022acr_write_reg_i2c(ret_handle, ODCNTL, 0xCB); // 1600Hz 설정
+
+    // 센서 동작 시작 (PC1=1, RES=1 for High Resolution)
+    ce_kx022acr_write_reg_i2c(ret_handle, CNTL1, 0xC0);
+
+    uint8_t rx_data = 0x00;
+
+    ce_kx022acr_read_reg_i2c(ret_handle, WHO_AM_I, &rx_data, 1);
+    if (rx_data != 0xC8)
+    {
+        printf("[SENSOR] WHO_AM_I 확인 실패: 0x%02X\n", rx_data);
+        return CE_ERROR_SENSOR_INIT;
+    }
+
+    
+
+    if (xTaskCreatePinnedToCore(ce_kx022acr_task, "ce_kx022acr_task", 6000, &ret_handle, 5, &ce_kx022acr_task_handle, 1) != pdPASS)
+    {
+        return CE_ERROR_TASK_CREATE;
+    }
+
+    init_sampling_timer();
+
+    return CE_OK;
+}

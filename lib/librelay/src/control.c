@@ -67,6 +67,25 @@ ce_error_t ce_relay_control_init(bool relay_connection[MAX_RELAYS])
     return CE_OK;
 }
 
+static void IRAM_ATTR relay_gpio_isr_handler(void *arg)
+{
+    int pin = (int)arg;
+
+    // 상태 읽기
+    int level = gpio_get_level(pin);
+
+    // 간단하게 전역 상태 저장 (또는 Queue, EventBits 사용)
+    ce_relay_state_global[RELAY_COMP].relay_state = (level == 1);  // 전역 변수로 예시 (주의: atomic하게 다뤄야 안전)
+    
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xEventGroupSetBitsFromISR(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group,
+                              RELAY_STATE_CHANGE_BIT1 | RELAY_STATE_CHANGE_BIT2 | RELAY_STATE_CHANGE_BIT3,
+                              &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken) {
+        portYIELD_FROM_ISR();
+    }
+}
+
 ce_error_t ce_relay_pin_set(ce_relay_state_t *relay_cfg)
 {
 #if RELAY_STATE == 0
@@ -75,9 +94,11 @@ ce_error_t ce_relay_pin_set(ce_relay_state_t *relay_cfg)
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
+        .intr_type = GPIO_INTR_ANYEDGE
     };
     gpio_config(&io_conf);
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(RELAY_COMP_PIN, relay_gpio_isr_handler, (void *)RELAY_COMP_PIN);
 
 #elif RELAY_STATE == 1
     gpio_config_t io_conf = {
@@ -109,15 +130,18 @@ static void relay_control_task(void *pvParameters)
             
             ce_global_update(&ce_relay_state_global[RELAY_COMP].relay_state, &relay_state, sizeof(relay_state), ce_relay_state_global[RELAY_COMP].relay_mutex);
             // xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_BIT);
-            EventBits_t bit = xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT);
+            EventBits_t bit = xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT1 | RELAY_STATE_CHANGE_BIT2 | RELAY_STATE_CHANGE_BIT3);
         }
         if (relay_set_cnt == 20) {
             relay_state = false;
             ce_global_update(&ce_relay_state_global[RELAY_COMP].relay_state, &relay_state, sizeof(relay_state), ce_relay_state_global[RELAY_COMP].relay_mutex);
             // xEventGroupClearBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_BIT);
-            xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT);
+            xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT1 | RELAY_STATE_CHANGE_BIT2 | RELAY_STATE_CHANGE_BIT3);
             relay_set_cnt = 0;
         }
+#elif RELAY_STATE == 0
+        // ce_global_update(&ce_relay_state_global[RELAY_COMP].relay_state, &relay_state, sizeof(relay_state), ce_relay_state_global[RELAY_COMP].relay_mutex);
+        // EventBits_t bit = xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT1 | RELAY_STATE_CHANGE_BIT2 | RELAY_STATE_CHANGE_BIT3);
 #endif
 
         vTaskDelay(pdMS_TO_TICKS(CE_CONTROL_RELAY_TASK_PERIOD));

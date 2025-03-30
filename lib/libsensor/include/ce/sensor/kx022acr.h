@@ -40,6 +40,7 @@
 #define KX022ACR_MAX_BUF_SIZE 6*1024*1024 // 6MB
 #define KX022ACR_MAX_SAMPLES (KX022ACR_MAX_BUF_SIZE / KX022ACR_SAMPLE_SIZE)
 
+extern int16_t *psram_buffer;
 
 
 ce_error_t ce_kx022acr_pin_set_spi(spi_device_handle_t * kx022acr_device_handle);
