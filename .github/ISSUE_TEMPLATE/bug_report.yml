@@ -3,6 +3,7 @@ description: "버그 보고"
 title: "[BUG] "
 labels: ["bug"]
 body:
+
   - type: dropdown
     id: priority
     attributes:
@@ -52,13 +53,3 @@ body:
     attributes:
       label: "해당 버전"
       description: "문제가 발생한 SW 버전 또는 Git 커밋 해시"
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: "우선순위"
-      options:
-        - 낮음
-        - 보통
-        - 높음
-        - 치명적(Critical)
