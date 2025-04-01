@@ -20,9 +20,9 @@
 #define CHUNK_SIZE (128*1024)  // 64KB
 #define LINE_MAX_LEN 32          // 한 줄당 최대 길이
 static const char *TAG = "HTTP_CLIENT";
-static const char *init_url = "http://172.30.1.79:5000/upload/init";
-static const char *end_url = "http://172.30.1.79:5000/upload/end";
-static const char *host_endpoint = "http://172.30.1.79:5000/upload";
+static const char *init_url = "http://172.30.1.11:5000/upload/init";
+static const char *end_url = "http://172.30.1.11:5000/upload/end";
+static const char *host_endpoint = "http://172.30.1.11:5000/upload";
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
@@ -193,6 +193,33 @@ static void ce_server_upload_task(void *params)
 
         vTaskDelay(pdMS_TO_TICKS(100)); // 0.1초 대기
 
+        // 3.3 temperatures 전송
+        esp_http_client_config_t config_temp = {
+            .url = host_endpoint, // 서버 URL
+            // .event_handler = _http_event_handler, // 이벤트 핸들러
+            .method = HTTP_METHOD_POST,           // POST 메소드
+            .user_data = local_response_buffer,   
+        };
+
+        esp_http_client_handle_t client_temp = esp_http_client_init(&config_temp);
+        uint32_t temp_data_num = uxQueueMessagesWaiting(ce_temperatures_queue_global);
+        esp_http_client_set_header(client_temp, "Content-Type", "text/plain");
+        esp_http_client_set_post_field(client_temp, "[TEMP]\n", 8); // 초기화
+        esp_http_client_perform(client_temp);
+        float temp_data[6];
+        for (uint32_t i = 0; i < temp_data_num; i++)
+        {
+            xQueueReceive(ce_temperatures_queue_global, temp_data, portMAX_DELAY);
+            char line[64];
+            snprintf(line, sizeof(line), "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+                     temp_data[0], temp_data[1], temp_data[2],
+                     temp_data[3], temp_data[4], temp_data[5]);
+            esp_http_client_set_header(client_temp, "Content-Type", "text/plain");
+            esp_http_client_set_post_field(client_temp, line, strlen(line));
+            esp_http_client_perform(client_temp);
+        }
+        esp_http_client_cleanup(client_temp);
+
         // 3.2 psram_buffer 전송
         multi_heap_info_t heap_info;
         heap_caps_get_info(&heap_info, MALLOC_CAP_SPIRAM);
@@ -221,6 +248,8 @@ static void ce_server_upload_task(void *params)
 
         esp_http_client_handle_t client_acc = esp_http_client_init(&config_acc);
         esp_http_client_set_header(client_acc, "Content-Type", "text/plain");
+        esp_http_client_set_post_field(client_acc, "[ACC]\n", 7); // 초기화
+        esp_http_client_perform(client_acc);
         for (int i = 0; i < sensor_info.samp_num_vib; i++)
         {
             int16_t x = psram_buffer[i * 3 + 0];
@@ -249,32 +278,7 @@ static void ce_server_upload_task(void *params)
         esp_http_client_cleanup(client_acc);
         free(send_buffer);
 
-        // 3.3 temperatures 전송
-        esp_http_client_config_t config_temp = {
-            .url = host_endpoint, // 서버 URL
-            // .event_handler = _http_event_handler, // 이벤트 핸들러
-            .method = HTTP_METHOD_POST,           // POST 메소드
-            .user_data = local_response_buffer,   
-        };
-
-        esp_http_client_handle_t client_temp = esp_http_client_init(&config_temp);
-        uint32_t temp_data_num = uxQueueMessagesWaiting(ce_temperatures_queue_global);
-        esp_http_client_set_header(client_temp, "Content-Type", "text/plain");
-        esp_http_client_set_post_field(client_temp, "[TEMP]\n", 8); // 초기화
-        esp_http_client_perform(client_temp);
-        float temp_data[6];
-        for (uint32_t i = 0; i < temp_data_num; i++)
-        {
-            xQueueReceive(ce_temperatures_queue_global, temp_data, portMAX_DELAY);
-            char line[64];
-            snprintf(line, sizeof(line), "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
-                     temp_data[0], temp_data[1], temp_data[2],
-                     temp_data[3], temp_data[4], temp_data[5]);
-            esp_http_client_set_header(client_temp, "Content-Type", "text/plain");
-            esp_http_client_set_post_field(client_temp, line, strlen(line));
-            esp_http_client_perform(client_temp);
-        }
-        esp_http_client_cleanup(client_temp);
+        
 
         // 3.4 종료 알림
         esp_http_client_config_t config_end = {
