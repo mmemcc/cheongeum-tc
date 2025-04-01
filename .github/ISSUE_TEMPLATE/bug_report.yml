@@ -1,0 +1,48 @@
+name: "🐛 Bug Report"
+description: "버그를 보고해주세요"
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: "버그 설명"
+      description: "어떤 문제가 발생했는지 명확하고 간결하게 설명해주세요."
+      placeholder: "예: 카메라 태스크가 일정 시간 후 중단됨"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "재현 방법"
+      description: "버그를 재현하기 위한 단계들을 알려주세요."
+      placeholder: |
+        1. 시스템 부팅
+        2. 명령 전송
+        3. 로그 확인
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "관련 로그"
+      description: "에러 로그나 출력 결과를 붙여주세요."
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: "소프트웨어 버전"
+      description: "문제가 발생한 소프트웨어 버전이나 Git 커밋 해시"
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "우선순위"
+      options:
+        - 낮음
+        - 보통
+        - 높음
+        - 치명적(Critical)
