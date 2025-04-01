@@ -1,5 +1,5 @@
 name: "🚀 주요기능 개발"
-description: "핵심 기능 단위의 이슈를 정의합니다"
+description: "핵심 기능 단위의 이슈 정의"
 title: "[FEATURE] "
 labels: ["feature"]
 body:
@@ -7,21 +7,21 @@ body:
     id: summary
     attributes:
       label: "기능 설명"
-      description: "무엇을 개발하는 기능인가요?"
-      placeholder: "예: 릴레이 제어 기능"
+      description: "개발하려는 기능 설명"
 
   - type: textarea
     id: goal
     attributes:
       label: "기능 목표 / 기대 동작"
-      description: "이 기능이 완성되었을 때 시스템이 어떻게 동작해야 하나요?"
+      description: "기능 상세 설명명"
 
   - type: textarea
     id: subtasks
     attributes:
       label: "필요한 서브기능들"
-      description: "예상되는 작업 항목들을 나열해주세요"
+      description: "예상되는 작업 항목"
       placeholder: |
+        - 예시시
         - [ ] GPIO 초기화
         - [ ] 상태 확인 함수
         - [ ] 명령 수신 처리
