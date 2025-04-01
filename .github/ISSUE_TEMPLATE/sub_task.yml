@@ -1,0 +1,23 @@
+name: "🧱 서브기능 개발"
+description: "주요 기능을 구성하는 작업 단위입니다"
+title: "[SUB] "
+labels: ["sub-task"]
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: "작업 내용"
+      description: "무엇을 구현해야 하나요?"
+      placeholder: "예: GPIO 초기화 함수 구현"
+
+  - type: input
+    id: parent
+    attributes:
+      label: "상위 이슈 링크"
+      description: "관련된 주요 기능 이슈 링크 (선택)"
+
+  - type: textarea
+    id: detail
+    attributes:
+      label: "작업 세부 설명"
+      description: "필요한 이유, 참고 사항, 구현 방식 등을 자유롭게 적어주세요."

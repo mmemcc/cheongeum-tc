@@ -7,35 +7,41 @@ body:
     id: description
     attributes:
       label: "버그 설명"
-      description: "어떤 문제가 발생했는지 명확하고 간결하게 설명해주세요."
-      placeholder: "예: 카메라 태스크가 일정 시간 후 중단됨"
+      description: "문제를 간단히 설명해주세요."
+      placeholder: "예: 센서 초기화 시 null 포인터 에러 발생"
     validations:
       required: true
 
   - type: textarea
     id: steps
     attributes:
-      label: "재현 방법"
-      description: "버그를 재현하기 위한 단계들을 알려주세요."
+      label: "재현 절차"
+      description: "버그가 발생하는 절차를 상세히 작성해주세요."
       placeholder: |
-        1. 시스템 부팅
+        1. 부팅
         2. 명령 전송
         3. 로그 확인
     validations:
       required: true
 
   - type: textarea
+    id: expected
+    attributes:
+      label: "기대 동작"
+      description: "정상적으로 기대했던 동작을 설명해주세요."
+
+  - type: textarea
     id: logs
     attributes:
-      label: "관련 로그"
-      description: "에러 로그나 출력 결과를 붙여주세요."
+      label: "로그 및 에러 메시지"
+      description: "관련 로그 또는 에러를 첨부해주세요."
       render: shell
 
   - type: input
     id: version
     attributes:
-      label: "소프트웨어 버전"
-      description: "문제가 발생한 소프트웨어 버전이나 Git 커밋 해시"
+      label: "해당 버전"
+      description: "문제가 발생한 SW 버전 또는 Git 커밋 해시"
 
   - type: dropdown
     id: priority
