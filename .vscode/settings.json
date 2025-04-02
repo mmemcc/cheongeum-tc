@@ -1,64 +1,14 @@
 {
-    "C_Cpp.intelliSenseEngine": "default",
-    // "idf.espIdfPathWin": "C:\\Users\\mjk98\\esp\\v5.2.1\\esp-idf",
-    "idf.espIdfPathWin": "C:\\Users\\user\\esp\\v5.2.5\\esp-idf",
-    // "idf.espIdfPathWin": "${workspaceFolder}\\esp-idf",
-
-    "idf.pythonInstallPath": "C:\\Users\\user\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
-    "idf.openOcdConfigs": [
-        "interface/ftdi/esp32_devkitj_v1.cfg",
-        "target/esp32s3.cfg"
-    ],
-    "idf.toolsPathWin": "C:\\Users\\user\\.espressif",
-    "idf.customExtraVars": {
-        "OPENOCD_SCRIPTS": "C:\\Users\\user\\.espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20230921/openocd-esp32/share/openocd/scripts",
-        "IDF_CCACHE_ENABLE": "1",
-        "ESP_ROM_ELF_DIR": "C:\\Users\\user\\.espressif\\tools\\esp-rom-elfs\\20230320/",
-        "IDF_TARGET": "esp32s3"
-    },
-    "files.associations": {
-        "spi_common.h": "c",
-        "error.h": "c",
-        "spi_master.h": "c",
-        "freertos.h": "c",
-        "event_groups.h": "c",
-        "semphr.h": "c",
-        "task.h": "c",
-        "shared.h": "c",
-        "kx022acr.h": "c",
-        "compare": "cpp",
-        "cstdint": "cpp",
-        "format": "c",
-        "cstddef": "c",
-        "i2c_master.h": "c",
-        "control.h": "c",
-        "gpio.h": "c",
-        "array": "c",
-        "string": "c",
-        "string_view": "c",
-        "ranges": "c",
-        "span": "c",
-        "sensors.h": "c",
-        "dsps_fft2r.h": "c",
-        "esp_dsp.h": "c",
-        "dsps_fft4r.h": "c",
-        "nvs_flash.h": "c",
-        "esp_event.h": "c",
-        "wifi.h": "c",
-        "esp_err.h": "c",
-        "queue.h": "c",
-        "mode.h": "c",
-        "string.h": "c",
-        "esp_tls.h": "c",
-        "protocol_examples_common.h": "c",
-        "protocol_examples_utils.h": "c",
-        "esp_http_client.h": "c",
-        "random": "cpp",
-        "esp_netif.h": "c",
-        "temperatures.h": "c",
-        "esp_mac.h": "c",
-        "esp_heap_caps.h": "c"
-    },
-    "idf.portWin": "COM11",
-    "idf.flashType": "UART"
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.espIdfPath": "/opt/esp/idf",
+  "idf.toolsPath": "/opt/esp",
+  "idf.pythonInstallPath": "/usr/bin/python3",
+  "idf.port": "/dev/ttyUSB0",
+  "idf.flashType": "UART"
 }
