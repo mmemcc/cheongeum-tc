@@ -1,0 +1,22 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "idf.espIdfPath": "${workspaceFolder}/esp-idf",
+    "idf.toolsPath": "/opt/esp",
+    "idf.gitPath": "/usr/bin/git",
+    "C_Cpp.default.configurationProvider": "espressif.esp-idf-extension"
+  },
+  "extensions": {
+    "recommendations": [
+      "espressif.esp-idf-extension",
+      "espressif.esp-idf-web",
+      "ms-vscode.cpptools-extension-pack",
+      "ms-vscode.cmake-tools",
+      "ms-python.python"
+    ]
+  }
+}

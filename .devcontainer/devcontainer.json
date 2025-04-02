@@ -7,13 +7,20 @@
 		"vscode": {
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "bash",
-				"idf.espIdfPath": "/opt/esp/idf",
+				"idf.espIdfPath": "${workspaceFolder}/esp-idf",
 				"idf.toolsPath": "/opt/esp",
-				"idf.gitPath": "/usr/bin/git"
+				"idf.gitPath": "/usr/bin/git",
+				"C_Cpp.default.configurationProvider": "espressif.esp-idf-extension",
+        		"C_Cpp.default.includePath": [
+          			"${workspaceFolder}/**"
+				]
 			},
 			"extensions": [
 				"espressif.esp-idf-extension",
-				"espressif.esp-idf-web"
+				"espressif.esp-idf-web",
+				"ms-vscode.cpptools-extension-pack",           
+        		"ms-vscode.cmake-tools",     
+        		"ms-python.python" 
 			]
 		}
 	},
@@ -23,5 +30,8 @@
   	],
   	"mounts": [
     	"source=${localWorkspaceFolder},target=/project,type=bind"
-  	]
+  	],
+	"postCreateCommand": "git submodule update --init --recursive",
+  	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/cheongeum,type=bind,consistency=cached",
+  	"workspaceFolder": "/workspaces/cheongeum"
 }
