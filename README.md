@@ -1,3 +1,125 @@
+# 개발 환경
+- Ubuntu 22.04 LTS, ESP-IDF v5.5.0
+- clone 시 vscode + esp-idf extention + docker 설치 필요
+
+## 🔌 USB 디바이스 사용 가이드 (ESP32)
+
+### 🪟 Windows (WSL2) 환경
+
+#### 1. usbipd-win 설치
+
+Windows에서는 [usbipd-win](https://github.com/dorssel/usbipd-win) 도구를 설치해야 합니다.
+
+- 👉 [Releases 페이지](https://github.com/dorssel/usbipd-win/releases)에서 최신 `.msi` 설치 파일 다운로드 및 설치
+
+#### 2. USB 장치 목록 확인
+
+ESP32 보드를 연결한 후 PowerShell에서 다음 명령을 실행:
+
+```powershell
+usbipd list
+```
+
+예시 출력:
+
+```
+BUSID  VID:PID    DEVICE
+2-1    10C4:EA60  Silicon Labs CP210x UART Bridge
+```
+
+#### 3. WSL에 장치 attach
+
+```powershell
+usbipd wsl attach --busid 2-1
+```
+
+> `--distribution` 옵션을 통해 특정 WSL 배포판에 연결할 수 있습니다.
+
+```powershell
+usbipd wsl attach --busid 2-1 --distribution Ubuntu-22.04
+```
+
+#### 4. 자동 연결 설정 (선택)
+
+ESP32 보드를 연결할 때마다 자동으로 WSL에 attach 되게 하려면 다음 명령을 실행:
+
+```powershell
+usbipd wsl attach --busid 2-1 --auto-attach
+```
+
+> 이후 동일한 보드를 연결하면 자동으로 attach 됩니다.  
+
+> 자동 연결을 해제하려면:
+
+```powershell
+usbipd wsl detach --busid 2-1 --auto-attach
+```
+
+#### 5. Dev Container에 USB 전달
+
+`.devcontainer/devcontainer.json` 파일에 다음 내용을 포함해야 합니다:
+
+```json
+"runArgs": [
+  "--privileged",
+  "--device=/dev/ttyUSB0"
+]
+```
+
+그 후 Dev Container를 **재시작(build)** 하세요.
+
+#### 6. 연결 확인
+
+Dev Container 내부 터미널에서 다음 명령으로 장치가 연결되었는지 확인:
+
+```bash
+ls -l /dev/ttyUSB*
+```
+
+---
+
+### 🐧 Ubuntu (Native Docker) 환경
+
+#### 1. USB 장치 확인
+
+보드를 연결한 후 다음 명령 실행:
+
+```bash
+ls -l /dev/ttyUSB*
+```
+
+예시:
+
+```
+crw-rw---- 1 root dialout 188, 0 Apr 3 14:21 /dev/ttyUSB0
+```
+
+#### 2. 사용자 dialout 그룹 추가
+
+현재 사용자가 USB 장치에 접근할 수 있도록 `dialout` 그룹에 추가:
+
+```bash
+sudo usermod -aG dialout $USER
+```
+
+> 로그아웃 후 재로그인 필요
+
+#### 3. Dev Container 설정
+
+`.devcontainer/devcontainer.json` 파일에 다음을 추가:
+
+```json
+"runArgs": [
+  "--privileged",
+  "--device=/dev/ttyUSB0"
+]
+```
+
+이후 Dev Container를 재시작하면 `/dev/ttyUSB0`가 정상 연결됩니다.
+
+---
+
+
 # SDK 구조
 
 ```
