@@ -15,10 +15,12 @@
 #include <freertos/task.h>
 #include <freertos/queue.h>
 #include <esp_heap_caps.h>
+#include <esp_timer.h>
 
 #include <ce/sensor/kx022acr.h>
 #include <ce/sensor/sensors.h>
 #include <ce/sensor/temperatures.h>
+#include <ce/relay/control.h>
 
 #if SENSOR_NONSTOP
     int16_t *psram_buffer;
@@ -107,9 +109,13 @@ static void ce_mqtt_task(void *params)
     float temp[6];
     size_t psram_len = 0;
 
-    strcpy(psram_buffer, "{\"device_id\":\"esp32-01\",\"accel_data\":[");
+    char *json_init = "{\"device_id\":\"esp32-01\",\"accel_data\":[";
+
+    strcpy(psram_buffer, json_init);
     psram_len = strlen(psram_buffer);
 
+    uint64_t start_time = esp_timer_get_time();
+    uint64_t elapsed_us = 0;
     
     while (1)
     {
@@ -120,9 +126,10 @@ static void ce_mqtt_task(void *params)
             if (xQueueReceive(ce_acc_queue_global, &acc_data, 0))
             {
                 char sample[64];
+                elapsed_us = esp_timer_get_time() - start_time;
                 snprintf(sample, sizeof(sample),
-                         "{\"x\":%u,\"y\":%u,\"z\":%u}%s",
-                         acc_data.x, acc_data.y, acc_data.z,
+                         "{\"us\":%llu,\"x\":%u,\"y\":%u,\"z\":%u}%s",
+                         elapsed_us, acc_data.x, acc_data.y, acc_data.z,
                          (count == MQTT_ACC_DATA_SIZE - 1) ? "" : ",");
 
                 size_t sample_len = strlen(sample);
@@ -136,11 +143,10 @@ static void ce_mqtt_task(void *params)
                     strcpy(psram_buffer + psram_len, "]}");
                     psram_len += 2;
                     int massage = esp_mqtt_client_publish(client, "esp32/accel", psram_buffer, psram_len, 1, 0);
-                    printf("ACC MQTT publish: %d\n", massage);
                     heap_caps_free(psram_buffer);
                     count = 0;
                     psram_buffer = heap_caps_malloc(cap, MALLOC_CAP_SPIRAM);
-                    strcpy(psram_buffer, "{\"device_id\":\"esp32-01\",\"accel_data\":[");
+                    strcpy(psram_buffer, json_init);
                     psram_len = strlen(psram_buffer);
                 }
             }
@@ -151,11 +157,27 @@ static void ce_mqtt_task(void *params)
             if (xQueueReceive(ce_temperatures_queue_global, &temp, 0))
             {
                 char sample[256];
+                elapsed_us = esp_timer_get_time() - start_time;
                 snprintf(sample, sizeof(sample),
-                         "{\"temp1\":%.2f,\"temp2\":%.2f,\"temp3\":%.2f,\"temp4\":%.2f,\"temp5\":%.2f,\"temp6\":%.2f}",
-                         temp[0], temp[1], temp[2], temp[3], temp[4], temp[5]);
+                         "{\"us\":%llu,\"temp1\":%.2f,\"temp2\":%.2f,\"temp3\":%.2f,\"temp4\":%.2f,\"temp5\":%.2f,\"temp6\":%.2f}",
+                         elapsed_us, temp[0], temp[1], temp[2], temp[3], temp[4], temp[5]);
                 int massage_temp = esp_mqtt_client_publish(client, "esp32/env", sample, strlen(sample), 1, 0);
-                printf("TEMP MQTT publish: %d\n", massage_temp);
+            }
+        }
+        else if (activated == ce_relay_state_queue_global)
+        {
+            ce_relay_state_set_t relay_state;
+            if (xQueueReceive(ce_relay_state_queue_global, &relay_state, 0))
+            {
+                char sample[100];
+                elapsed_us = esp_timer_get_time() - start_time;
+                snprintf(sample, sizeof(sample),
+                         "{\"us\":%llu,\"relay1\":[%d,%d],\"relay2\":[%d,%d],\"relay3\":[%d,%d],\"relay4\":[%d,%d]}",
+                         elapsed_us, relay_state.relay_connection[0], relay_state.relay_state[0],
+                          relay_state.relay_connection[1], relay_state.relay_state[1],
+                           relay_state.relay_connection[2], relay_state.relay_state[2],
+                            relay_state.relay_connection[3], relay_state.relay_state[3]);
+                int massage_relay = esp_mqtt_client_publish(client, "esp32/relay", sample, strlen(sample), 1, 0);
             }
         }
         vTaskDelay(pdMS_TO_TICKS(1));

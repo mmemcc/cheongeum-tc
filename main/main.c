@@ -23,6 +23,7 @@ EventGroupHandle_t ce_mode_event_group_global;
 QueueHandle_t ce_temperatures_queue_global;
 QueueHandle_t ce_sensors_info_global;
 QueueHandle_t ce_acc_queue_global;
+QueueHandle_t ce_relay_state_queue_global;
 QueueSetHandle_t mqtt_queue_set;
 
 
@@ -44,10 +45,12 @@ void app_main(void) {
     ce_sensors_info_global = xQueueCreate(2, sizeof(ce_sensor_info_t));
     ce_temperatures_queue_global = xQueueCreate(2, sizeof(float)*6);
     ce_acc_queue_global = xQueueCreate(10, sizeof(sensor_acc_t));
+    ce_relay_state_queue_global = xQueueCreate(1, sizeof(ce_relay_state_set_t));
 
     mqtt_queue_set = xQueueCreateSet(20);
     xQueueAddToSet(ce_acc_queue_global, mqtt_queue_set);
     xQueueAddToSet(ce_temperatures_queue_global, mqtt_queue_set);
+    xQueueAddToSet(ce_relay_state_queue_global, mqtt_queue_set);
 
     if(ce_kx022acr_init_i2c() != CE_OK) {
         printf("ce_kx022acr_init_i2c failed\n");

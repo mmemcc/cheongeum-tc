@@ -20,6 +20,8 @@ ce_error_t ce_relay_control_init(bool relay_connection[MAX_RELAYS])
 
     for (uint8_t i = 0; i < MAX_RELAYS; i++) {
         if (relay_connection[i] == false) {
+            relay_cfg[i].relay_connection = relay_connection[i];
+            relay_cfg[i].relay_state = false;
             continue;
         }
         if (i == RELAY_COMP) {
@@ -75,12 +77,14 @@ static void IRAM_ATTR relay_gpio_isr_handler(void *arg)
     int level = gpio_get_level(pin);
 
     // 간단하게 전역 상태 저장 (또는 Queue, EventBits 사용)
-    ce_relay_state_global[RELAY_COMP].relay_state = (level == 1);  // 전역 변수로 예시 (주의: atomic하게 다뤄야 안전)
+    ce_relay_state_global[RELAY_COMP].relay_state = (level == 1);
     
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+#if !SENSOR_NONSTOP
     xEventGroupSetBitsFromISR(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group,
                               RELAY_STATE_CHANGE_BIT1 | RELAY_STATE_CHANGE_BIT2 | RELAY_STATE_CHANGE_BIT3,
                               &xHigherPriorityTaskWoken);
+#endif
     if (xHigherPriorityTaskWoken) {
         portYIELD_FROM_ISR();
     }
@@ -92,7 +96,7 @@ ce_error_t ce_relay_pin_set(ce_relay_state_t *relay_cfg)
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << RELAY_COMP_PIN),
         .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_ANYEDGE
     };
@@ -119,24 +123,43 @@ ce_error_t ce_relay_pin_set(ce_relay_state_t *relay_cfg)
 
 static void relay_control_task(void *pvParameters)
 {
-    bool relay_state = false;
+    ce_relay_state_set_t relay_state_set = {
+        .relay_connection = {ce_relay_state_global[RELAY_COMP].relay_connection,
+                            ce_relay_state_global[RELAY_FAN].relay_connection,
+                            ce_relay_state_global[RELAY_DEF].relay_connection,
+                            ce_relay_state_global[RELAY_AUX_LIGHT].relay_connection},
+        .relay_state = {ce_relay_state_global[RELAY_COMP].relay_state,
+                        ce_relay_state_global[RELAY_FAN].relay_state,
+                        ce_relay_state_global[RELAY_DEF].relay_state,
+                        ce_relay_state_global[RELAY_AUX_LIGHT].relay_state}
+    };
+    relay_state_set.relay_state[RELAY_COMP] = false;
+
 
     while (1)
     {
 #if RELAY_STATE == -1
         relay_set_cnt++;
         if (relay_set_cnt == 10) {
-            relay_state = true;
+            relay_state_set.relay_state[RELAY_COMP] = true;
             
-            ce_global_update(&ce_relay_state_global[RELAY_COMP].relay_state, &relay_state, sizeof(relay_state), ce_relay_state_global[RELAY_COMP].relay_mutex);
+            ce_global_update(&ce_relay_state_global[RELAY_COMP].relay_state, &relay_state_set.relay_state[RELAY_COMP], sizeof(relay_state_set.relay_state[RELAY_COMP]), ce_relay_state_global[RELAY_COMP].relay_mutex);
             // xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_BIT);
+#if !SENSOR_NONSTOP
             EventBits_t bit = xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT1 | RELAY_STATE_CHANGE_BIT2 | RELAY_STATE_CHANGE_BIT3);
+#else
+            xQueueSend(ce_relay_state_queue_global, &relay_state_set, 0);
+#endif
         }
         if (relay_set_cnt == 20) {
-            relay_state = false;
-            ce_global_update(&ce_relay_state_global[RELAY_COMP].relay_state, &relay_state, sizeof(relay_state), ce_relay_state_global[RELAY_COMP].relay_mutex);
+            relay_state_set.relay_state[RELAY_COMP] = false;
+            ce_global_update(&ce_relay_state_global[RELAY_COMP].relay_state, &relay_state_set.relay_state[RELAY_COMP], sizeof(relay_state_set.relay_state[RELAY_COMP]), ce_relay_state_global[RELAY_COMP].relay_mutex);
             // xEventGroupClearBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_BIT);
+#if !SENSOR_NONSTOP
             xEventGroupSetBits(ce_relay_state_global[RELAY_COMP].relay_state_set_event_group, RELAY_STATE_CHANGE_BIT1 | RELAY_STATE_CHANGE_BIT2 | RELAY_STATE_CHANGE_BIT3);
+#else
+            xQueueSend(ce_relay_state_queue_global, &relay_state_set, 0);
+#endif
             relay_set_cnt = 0;
         }
 #elif RELAY_STATE == 0

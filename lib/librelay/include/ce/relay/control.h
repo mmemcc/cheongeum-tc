@@ -48,7 +48,17 @@ typedef struct
 } ce_relay_state_t;
 
 
+// [comp, fan, def, aux/light]
+typedef struct
+{
+    bool relay_connection[MAX_RELAYS]; // 0: not connected, 1: connected
+    bool relay_state[MAX_RELAYS]; // 0: off, 1: on
+} ce_relay_state_set_t;
+
 extern ce_relay_state_t ce_relay_state_global[MAX_RELAYS];
+
+
+extern QueueHandle_t ce_relay_state_queue_global;
 
 /**
  * @brief 릴레이 제어 초기화
