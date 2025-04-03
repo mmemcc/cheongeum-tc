@@ -6,7 +6,12 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
-				"terminal.integrated.defaultProfile.linux": "bash",
+				"terminal.integrated.defaultProfile.linux": "zsh",
+				"terminal.integrated.profiles.linux": {
+					"zsh": {
+						"path": "/usr/bin/zsh"
+					}
+				},
 				"idf.espIdfPath": "${workspaceFolder}/esp-idf",
 				"idf.toolsPath": "/opt/esp",
 				"idf.gitPath": "/usr/bin/git",
@@ -31,7 +36,8 @@
   	"mounts": [
     	"source=${localWorkspaceFolder},target=/project,type=bind"
   	],
-	"postCreateCommand": "git submodule update --init --recursive",
+	"postCreateCommand": "bash /workspaces/cheongeum/.devcontainer/setup.sh",
   	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/cheongeum,type=bind,consistency=cached",
-  	"workspaceFolder": "/workspaces/cheongeum"
+  	"workspaceFolder": "/workspaces/cheongeum",
+
 }

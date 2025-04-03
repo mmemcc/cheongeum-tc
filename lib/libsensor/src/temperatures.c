@@ -7,6 +7,7 @@
 #include <freertos/queue.h>
 #include <esp_adc/adc_oneshot.h>
 #include <esp_timer.h>
+#include <esp_random.h>
 
 #include <ce/sensor/temperatures.h>
 #include <ce/relay/control.h>
@@ -26,14 +27,15 @@ ce_error_t ce_temperatures_read(float * temp, uint8_t sensor_ch, adc_oneshot_uni
 {
     int adc_raw[0][0];
     esp_err_t ret = ESP_OK;
+
     ret = adc_oneshot_read(adc_handle, sensor_ch, &adc_raw[0][0]);
     if (ret != ESP_OK) {
         return CE_ERROR_SENSOR_READ;
     }
-
     float voltage = (TEMP_REP_VOLTAE*adc_raw[0][0])/4095.0;
     float resistance = (TEMP_REP_VOLTAE*TMEP_SENSOR_R_25_DEGREE)/voltage - TMEP_SENSOR_R_25_DEGREE;
     float temp_c = 1.0/((1.0/(273.15+25.0)) + (log(resistance/TMEP_SENSOR_R_25_DEGREE)/3435.0)) - 273.15;
+
     *temp = temp_c;
     return CE_OK;
 
@@ -83,7 +85,28 @@ ce_error_t ce_temperatures_set_pin(adc_oneshot_unit_handle_t *adc1_handle)
     return CE_OK;
 }
 
-static void ce_temperatures_task(void *params)
+static void ce_temperatures_task_nonstop(void * params)
+{
+    adc_oneshot_unit_handle_t adc1_handle = *((adc_oneshot_unit_handle_t *)params);
+    float temp[6];
+    while(1) 
+    {
+        xSemaphoreTake(temp_sample_sem, portMAX_DELAY);
+
+        for (int i = 0; i < 6; i++)
+        {
+#if SENSOR_REAL
+            ce_temperatures_read(&temp[i], i, adc1_handle);
+#else
+            temp[i] = esp_random() % 100; // 임의 데이터 생성
+#endif
+        }
+        
+        xQueueSend(ce_temperatures_queue_global, temp, 0);
+    }
+}
+
+static void ce_temperatures_task_onoff(void *params)
 {
     adc_oneshot_unit_handle_t adc1_handle = *((adc_oneshot_unit_handle_t *)params);
     float temp[6];
@@ -130,13 +153,14 @@ ce_error_t ce_temperatures_init(void)
         return err;
     }
 
-    
+    init_temp_sampling_timer();
 
-    if (xTaskCreatePinnedToCore(ce_temperatures_task, "ce_temperatures_task", 4000, &adc1_handle, 5, &ce_temperatures_task_handle, 0) != pdPASS)
+    
+    if (xTaskCreatePinnedToCore(ce_temperatures_task_nonstop, "ce_temperatures_task", 4000, &adc1_handle, 5, &ce_temperatures_task_handle, 0) != pdPASS)
     {
         return CE_ERROR_TASK_CREATE;
     }
 
-    init_temp_sampling_timer();
+    
     return CE_OK;
 }

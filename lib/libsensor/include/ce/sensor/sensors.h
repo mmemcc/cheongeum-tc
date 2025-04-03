@@ -14,9 +14,9 @@ typedef struct {
 } fft_result_t;
 
 typedef struct {
-    float x;
-    float y;
-    float z;
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
 } sensor_acc_t;
 
 typedef struct {
@@ -27,7 +27,7 @@ typedef struct {
 } ce_sensor_info_t;
 
 extern QueueHandle_t ce_sensors_info_global;
-
-
+extern QueueHandle_t ce_acc_queue_global;
+extern QueueSetHandle_t mqtt_queue_set;
 
 #endif

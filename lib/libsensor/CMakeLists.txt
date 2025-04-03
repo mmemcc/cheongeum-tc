@@ -1,6 +1,6 @@
 
 
-set(private_requires "liboperation" "libutil" "librelay" "libserver" "libtc" "esp-dsp" "esp_timer" "esp_adc")
+set(private_requires "liboperation" "libutil" "librelay" "libserver" "libtc" "esp-dsp" "esp_timer" "esp_adc" "esp_hw_support")
 
 file(GLOB SOURCES "src/*.c")
 

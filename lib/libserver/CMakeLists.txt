@@ -1,5 +1,5 @@
 
-set(private_requires "liboperation" "libutil" "libsensor" "librelay" "libtc" "esp_http_client" "esp-tls")
+set(private_requires "liboperation" "libutil" "libsensor" "librelay" "libtc" "esp_http_client" "esp-tls" "mqtt")
 
 file(GLOB SOURCES "src/*.c")
 
