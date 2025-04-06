@@ -10,16 +10,21 @@
 #include <esp_mac.h>
 #include <driver/gpio.h>
 #include <esp_timer.h>
+#include <esp_random.h>
 
 #include <ce/sensor/kx022acr.h>
 #include <ce/relay/control.h>
 #include <ce/sensor/sensors.h>
+#include <ce/operation/test.h>
 
 static i2c_master_dev_handle_t ret_handle;
 SemaphoreHandle_t sample_sem;
 esp_timer_handle_t sample_timer;
 TaskHandle_t ce_kx022acr_task_handle;
-int16_t *psram_buffer;
+
+#if !SENSOR_NONSTOP
+    int16_t *psram_buffer;
+#endif
 
 void sample_timer_cb(void *arg)
 {
@@ -210,7 +215,40 @@ ce_error_t ce_kx022acr_read_reg_i2c(i2c_master_dev_handle_t i2c_dev, uint8_t reg
     return i2c_master_transmit_receive(i2c_dev, &reg_addr, 1, data, rx_len, 1000 / portTICK_PERIOD_MS);
 }
 
-static void ce_kx022acr_task(void *params)
+static void ce_kx022acr_task_nonstop(void * params)
+{
+    i2c_master_dev_handle_t kx022acr_device_handle = *((i2c_master_dev_handle_t *)params);
+    
+    sensor_acc_t acc_data;
+
+    while(1)
+    {
+        xSemaphoreTake(sample_sem, portMAX_DELAY);
+        uint8_t read_samples[6];
+
+#if SENSOR_REAL
+        ce_kx022acr_read_reg_i2c(kx022acr_device_handle, BUF_READ, read_samples, 6);
+        // printf("%u %u %u %u %u %u\n", read_samples[0], read_samples[1], read_samples[2], read_samples[3], read_samples[4], read_samples[5]);
+#else
+        // 임의 데이터 생성
+        read_samples[0] = esp_random() % 256;
+        read_samples[1] = esp_random() % 256;
+        read_samples[2] = esp_random() % 256;
+        read_samples[3] = esp_random() % 256;
+        read_samples[4] = esp_random() % 256;
+        read_samples[5] = esp_random() % 256;
+#endif
+        acc_data.x = ((int16_t)read_samples[1] << 8) | read_samples[0];
+        acc_data.y = ((int16_t)read_samples[3] << 8) | read_samples[2];
+        acc_data.z = ((int16_t)read_samples[5] << 8) | read_samples[4];
+        // printf("x:%d, y:%d, z:%d\n", acc_data.x, acc_data.y,acc_data.z);
+
+        xQueueSend(ce_acc_queue_global, &acc_data, 0);
+    }
+}
+
+#if !SENSOR_NONSTOP
+static void ce_kx022acr_task_onoff(void *params)
 {
     // spi_device_handle_t kx022acr_device_handle = *((spi_device_handle_t *)params);
     i2c_master_dev_handle_t kx022acr_device_handle = *((i2c_master_dev_handle_t *)params);
@@ -290,6 +328,7 @@ static void ce_kx022acr_task(void *params)
         // }
     }
 }
+#endif
 
 ce_error_t ce_kx022acr_init_spi(void)
 {
@@ -331,7 +370,7 @@ ce_error_t ce_kx022acr_init_spi(void)
     }
 
 
-    if (xTaskCreatePinnedToCore(ce_kx022acr_task, "ce_kx022acr_task", 4096, &kx022acr_device_handle, 5, NULL, tskNO_AFFINITY) != pdPASS)
+    if (xTaskCreatePinnedToCore(ce_kx022acr_task_nonstop, "ce_kx022acr_task", 4096, &kx022acr_device_handle, 5, NULL, tskNO_AFFINITY) != pdPASS)
     {
         return CE_ERROR_TASK_CREATE;
     }
@@ -353,6 +392,8 @@ ce_error_t ce_kx022acr_init_i2c(void)
 {
     ce_error_t err;
 
+    init_sampling_timer();
+#if SENSOR_REAL
     err = ce_kx022acr_pin_set_i2c(&ret_handle);
     if (err != CE_OK)
     {
@@ -386,15 +427,13 @@ ce_error_t ce_kx022acr_init_i2c(void)
         printf("[SENSOR] WHO_AM_I 확인 실패: 0x%02X\n", rx_data);
         return CE_ERROR_SENSOR_INIT;
     }
-
-    
-
-    if (xTaskCreatePinnedToCore(ce_kx022acr_task, "ce_kx022acr_task", 6000, &ret_handle, 5, &ce_kx022acr_task_handle, 1) != pdPASS)
+#endif
+    if (xTaskCreatePinnedToCore(ce_kx022acr_task_nonstop, "ce_kx022acr_task", 6000, &ret_handle, 5, &ce_kx022acr_task_handle, 1) != pdPASS)
     {
         return CE_ERROR_TASK_CREATE;
     }
 
-    init_sampling_timer();
+    
 
     return CE_OK;
 }

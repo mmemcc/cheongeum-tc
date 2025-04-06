@@ -8,7 +8,23 @@
     "idf.espIdfPath": "${workspaceFolder}/esp-idf",
     "idf.toolsPath": "/opt/esp",
     "idf.gitPath": "/usr/bin/git",
-    "C_Cpp.default.configurationProvider": "espressif.esp-idf-extension"
+    "C_Cpp.default.configurationProvider": "espressif.esp-idf-extension",
+    "files.associations": {
+      "stdint.h": "c",
+      "mqtt_client.h": "c",
+      "adc_oneshot.h": "c",
+      "bitset": "c",
+      "algorithm": "c",
+      "format": "c",
+      "test.h": "c",
+      "freertos.h": "c",
+      "task.h": "c",
+      "array": "c",
+      "string": "c",
+      "string_view": "c",
+      "ranges": "c",
+      "span": "c"
+    }
   },
   "extensions": {
     "recommendations": [

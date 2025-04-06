@@ -19,6 +19,31 @@
 
 #define TEMP_REP_VOLTAE 3.3
 
+#define HUMI_TEMP_UART_TX 17
+#define HUMI_TEMP_UART_RX 18
+#define HUMI_TEMP_UART_BAUD_RATE 9600
+#define HUMI_TEMP_UART_PORT_NUM 1
+
+typedef struct {
+    uint8_t address;
+    uint8_t function_code;
+    uint8_t inital_addr_l;
+    uint8_t inital_addr_h;
+    uint8_t data_length_l;
+    uint8_t data_length_h;
+    uint8_t check_l;
+    uint8_t check_h;
+} ce_humi_temp_tx_frame_t;
+
+typedef struct {
+    uint8_t address;
+    uint8_t function_code;
+    uint8_t return_byte;
+    uint8_t data_humi[2];
+    uint8_t data_temp[2];
+    uint8_t check_l;
+    uint8_t check_h;
+} ce_humi_temp_rx_frame_t;
 
 extern QueueHandle_t ce_temperatures_queue_global;
 
