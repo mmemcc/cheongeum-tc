@@ -5,34 +5,44 @@
     }
   ],
   "settings": {
-    "idf.espIdfPath": "${workspaceFolder}/esp-idf",
-    "idf.toolsPath": "/opt/esp",
-    "idf.gitPath": "/usr/bin/git",
-    "C_Cpp.default.configurationProvider": "espressif.esp-idf-extension",
-    "files.associations": {
-      "stdint.h": "c",
-      "mqtt_client.h": "c",
-      "adc_oneshot.h": "c",
-      "bitset": "c",
-      "algorithm": "c",
-      "format": "c",
-      "test.h": "c",
-      "freertos.h": "c",
-      "task.h": "c",
-      "array": "c",
-      "string": "c",
-      "string_view": "c",
-      "ranges": "c",
-      "span": "c"
-    }
+    // "idf.preFlashTask": "erase-flash"
+    // "idf.preFlashTask": "source /opt/esp/idf/export.sh && idf.py erase-flash",
   },
-  "extensions": {
-    "recommendations": [
-      "espressif.esp-idf-extension",
-      "espressif.esp-idf-web",
-      "ms-vscode.cpptools-extension-pack",
-      "ms-vscode.cmake-tools",
-      "ms-python.python"
+  "launch": {
+    "configurations": [
+      {
+        "name": "Launch ESP32-S3 (xtensa, JTAG)",
+        "type": "espidf",
+        "request": "launch",
+        "target": "esp32s3",
+        "executable": "${workspaceFolder}/build/${command:espIdf.getProjectName}.elf",
+        "openOCDConfig": [
+          "board/esp32s3-builtin.cfg"
+        ],
+        "gdbpath": "/opt/esp/tools/xtensa-esp32s3-elf/bin/xtensa-esp32s3-elf-gdb",
+        "interface": "jtag",
+        "device": "ttyACM0",
+        "runTool": "openocd",
+        "env": {
+          "PATH": "/opt/esp/tools/xtensa-esp32s3-elf/bin:${env:PATH}"
+        }
+      }
     ]
-  }
+  },
+  // "tasks": {
+  //   "version": "2.0.0",
+  //   "tasks": [
+  //     {
+  //       "label": "erase-flash",
+  //       "type": "shell",
+  //       "command": "/bin/zsh",
+  //       "args": [
+  //         "-c",
+  //         "source /opt/esp/idf/export.sh && idf.py erase-flash"
+  //       ],
+  //       "problemMatcher": [],
+  //       "group": "none"
+  //     }
+  //   ]
+  // }
 }

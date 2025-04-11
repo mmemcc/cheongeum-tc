@@ -1,11 +1,4 @@
 {
-    "idf.pythonInstallPath": "/usr/bin/python3",
-    "idf.flashType": "UART",
-    "idf.port": "/dev/ttyUSB0",
-    "idf.customExtraVars": {
-        "IDF_TARGET": "esp32s3"
-    },
-    "idf.openOcdConfigs": [
-        "board/esp32s3-builtin.cfg"
-    ]
+    "idf.pythonInstallPath": "/opt/esp/python_env/idf5.5_py3.12_env/bin/python",
+    "idf.port": "/dev/ttyACM0"
 }

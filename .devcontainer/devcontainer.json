@@ -16,28 +16,28 @@
 				"idf.toolsPath": "/opt/esp",
 				"idf.gitPath": "/usr/bin/git",
 				"C_Cpp.default.configurationProvider": "espressif.esp-idf-extension",
-        		"C_Cpp.default.includePath": [
-          			"${workspaceFolder}/**"
+				"C_Cpp.default.includePath": [
+					"${workspaceFolder}/**"
 				]
+				
 			},
+			
 			"extensions": [
 				"espressif.esp-idf-extension",
-				"espressif.esp-idf-web",
-				"ms-vscode.cpptools-extension-pack",           
-        		"ms-vscode.cmake-tools",     
-        		"ms-python.python" 
+				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.cmake-tools",
+				"ms-python.python"
 			]
 		}
 	},
 	"runArgs": [
-    	"--privileged",
-    	"--device=/dev/ttyUSB0"
-  	],
-  	"mounts": [
-    	"source=${localWorkspaceFolder},target=/project,type=bind"
-  	],
-	"postCreateCommand": "bash /workspaces/cheongeum/.devcontainer/setup.sh",
-  	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/cheongeum,type=bind,consistency=cached",
-  	"workspaceFolder": "/workspaces/cheongeum",
-
+		"--privileged",
+		"--device=/dev/ttyACM0"
+	],
+	"mounts": [
+		"source=${localWorkspaceFolder},target=/project,type=bind"
+	],
+	"postCreateCommand": "zsh /workspaces/cheongeum/.devcontainer/setup.sh",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/cheongeum,type=bind,consistency=cached",
+	"workspaceFolder": "/workspaces/cheongeum"
 }

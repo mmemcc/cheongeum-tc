@@ -1,0 +1,13 @@
+User : 14 1 options.c:63 configuration_output_handler(): debug_level: 3
+User : 15 1 options.c:63 configuration_output_handler(): 
+Debug: 16 1 options.c:244 add_default_dirs(): bindir=/usr/bin
+Debug: 17 1 options.c:245 add_default_dirs(): pkgdatadir=/usr/share/openocd
+Debug: 18 1 options.c:246 add_default_dirs(): exepath=/usr/bin
+Debug: 19 1 options.c:247 add_default_dirs(): bin2data=../share/openocd
+Debug: 20 1 configuration.c:42 add_script_search_dir(): adding /home/mmemcc/.config/openocd
+Debug: 21 1 configuration.c:42 add_script_search_dir(): adding /home/mmemcc/.openocd
+Debug: 22 1 configuration.c:42 add_script_search_dir(): adding /usr/bin/../share/openocd/site
+Debug: 23 1 configuration.c:42 add_script_search_dir(): adding /usr/bin/../share/openocd/scripts
+User : 24 1 command.c:694 command_run_line(): embedded:startup.tcl:26: Error: Can't find board/esp32s3-builtin.cfg
+in procedure 'script' 
+at file "embedded:startup.tcl", line 26
