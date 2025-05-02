@@ -15,6 +15,7 @@
 				"idf.espIdfPath": "${workspaceFolder}/esp-idf",
 				"idf.toolsPath": "/opt/esp",
 				"idf.gitPath": "/usr/bin/git",
+				"idf.pythonInstallPath": "/usr/bin/python3",
 				"C_Cpp.default.configurationProvider": "espressif.esp-idf-extension",
 				"C_Cpp.default.includePath": [
 					"${workspaceFolder}/**"
@@ -24,7 +25,7 @@
 			
 			"extensions": [
 				"espressif.esp-idf-extension",
-				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.cpptools",
 				"ms-vscode.cmake-tools",
 				"ms-python.python"
 			]
@@ -38,6 +39,7 @@
 		"source=${localWorkspaceFolder},target=/project,type=bind"
 	],
 	"postCreateCommand": "zsh /workspaces/cheongeum/.devcontainer/setup.sh",
+	"postStartCommand": "zsh -c 'git config --global --add safe.directory /workspaces/cheongeum/esp-idf'",
 	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/cheongeum,type=bind,consistency=cached",
 	"workspaceFolder": "/workspaces/cheongeum"
 }

@@ -8,27 +8,27 @@
     // "idf.preFlashTask": "erase-flash"
     // "idf.preFlashTask": "source /opt/esp/idf/export.sh && idf.py erase-flash",
   },
-  "launch": {
-    "configurations": [
-      {
-        "name": "Launch ESP32-S3 (xtensa, JTAG)",
-        "type": "espidf",
-        "request": "launch",
-        "target": "esp32s3",
-        "executable": "${workspaceFolder}/build/${command:espIdf.getProjectName}.elf",
-        "openOCDConfig": [
-          "board/esp32s3-builtin.cfg"
-        ],
-        "gdbpath": "/opt/esp/tools/xtensa-esp32s3-elf/bin/xtensa-esp32s3-elf-gdb",
-        "interface": "jtag",
-        "device": "ttyACM0",
-        "runTool": "openocd",
-        "env": {
-          "PATH": "/opt/esp/tools/xtensa-esp32s3-elf/bin:${env:PATH}"
-        }
-      }
-    ]
-  },
+  // "launch": {
+  //   "configurations": [
+  //     {
+  //       "name": "Launch ESP32-S3 (xtensa, JTAG)",
+  //       "type": "espidf",
+  //       "request": "launch",
+  //       "target": "esp32s3",
+  //       "executable": "${workspaceFolder}/build/${command:espIdf.getProjectName}.elf",
+  //       "openOCDConfig": [
+  //         "board/esp32s3-builtin.cfg"
+  //       ],
+  //       "gdbpath": "/opt/esp/tools/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gdb",
+  //       "interface": "jtag",
+  //       "device": "ttyACM0",
+  //       "runTool": "openocd",
+  //       // "env": {
+  //       //   "PATH": "/opt/esp/tools/xtensa-esp32s3-elf/bin:${env:PATH}"
+  //       // }
+  //     }
+  //   ]
+  // },
   // "tasks": {
   //   "version": "2.0.0",
   //   "tasks": [

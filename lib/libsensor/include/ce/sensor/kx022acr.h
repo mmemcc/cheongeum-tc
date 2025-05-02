@@ -47,7 +47,7 @@ ce_error_t ce_kx022acr_pin_set_spi(spi_device_handle_t * kx022acr_device_handle)
 
 ce_error_t ce_kx022acr_write_reg_spi(spi_device_handle_t kx022acr_device_handle, uint8_t reg_addr, uint8_t reg_data);
 
-ce_error_t ce_kx022acr_read_reg_spi(spi_device_handle_t kx022acr_device_handle, uint8_t reg_addr, void *reg_data);
+ce_error_t ce_kx022acr_read_reg_spi(spi_device_handle_t kx022acr_device_handle, uint8_t reg_addr, void *reg_data, size_t rx_len);
 
 ce_error_t ce_kx022acr_init_spi(void);
 

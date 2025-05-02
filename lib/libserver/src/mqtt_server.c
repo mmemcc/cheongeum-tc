@@ -21,6 +21,7 @@
 #include <ce/sensor/sensors.h>
 #include <ce/sensor/temperatures.h>
 #include <ce/relay/control.h>
+#include <ce/server/mqtt_server.h>
 
 #if SENSOR_NONSTOP
     int16_t *psram_buffer;
@@ -189,8 +190,7 @@ static void ce_mqtt_task(void *params)
 void mqtt_init(void)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
-        // .broker.address.uri = "mqtt://172.30.1.70",
-        .broker.address.uri = "mqtt://172.30.1.11",
+        .broker.address.uri = MQTT_BROKER_URI,
     };
 
     // char line[128];

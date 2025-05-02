@@ -1,4 +1,6 @@
 {
-    "idf.pythonInstallPath": "/opt/esp/python_env/idf5.5_py3.12_env/bin/python",
-    "idf.port": "/dev/ttyACM0"
+    "idf.flashType": "UART",
+    "idf.espIdfPath": "/opt/esp/idf",
+    "idf.toolsPath": "/opt/esp",
+    "idf.pythonInstallPath": "/usr/bin/python3"
 }
