@@ -181,9 +181,9 @@ static void ce_kx022acr_task_nonstop(void * params)
     // i2c_master_dev_handle_t kx022acr_device_handle = *((i2c_master_dev_handle_t *)params);
     spi_device_handle_t kx022acr_device_handle = *((spi_device_handle_t *)params);
     
-    sensor_acc_t acc_data;
+    sensor_acc_t acc_data[43] = {0};
     int buf_status = 0;
-
+    ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CLEAR, 0x00);
     while(1)
     {
         xSemaphoreTake(sample_sem, portMAX_DELAY);
@@ -192,11 +192,54 @@ static void ce_kx022acr_task_nonstop(void * params)
 #if SENSOR_REAL
         // ce_kx022acr_read_reg_i2c(kx022acr_device_handle, BUF_READ, read_samples, 6);
         uint8_t rx_data = 0x00;
+        
+        // while(buf_status != 6)
+        // {
+        //     ce_kx022acr_read_reg_spi(kx022acr_device_handle, BUF_STATUS_1, &rx_data, 1);
+        //     buf_status += rx_data;
+        //     if (rx_data > 0)
+        //     {
+        //         printf("buf_state: %d\n", buf_status);
+        //     }
+        // }
+        // buf_status = 0;
+        
+
+        // printf("buf_status: %d\n", buf_status);
         ce_kx022acr_read_reg_spi(kx022acr_device_handle, BUF_STATUS_1, &rx_data, 1);
         buf_status += rx_data;
-        // printf("buf_status: %d\n", buf_status);
-        ce_kx022acr_read_reg_spi(kx022acr_device_handle, BUF_READ, read_samples, 6);
+        
+        if (rx_data >= 240)
+        {
+            // printf("buf_status: %d\n", rx_data);
+            uint8_t sample_num = rx_data / 6;
+            if (rx_data > 252)
+            {
+                sample_num = 43;
+            }
+            for (int i = 0; i < sample_num; i++)
+            {
+                ce_kx022acr_read_reg_spi(kx022acr_device_handle, BUF_READ, read_samples, 6);
+                acc_data[i].x = ((int16_t)read_samples[1] << 8) | read_samples[0];
+                acc_data[i].y = ((int16_t)read_samples[3] << 8) | read_samples[2];
+                acc_data[i].z = ((int16_t)read_samples[5] << 8) | read_samples[4];
+                // printf("x:%d, y:%d, z:%d\n", acc_data[i].x, acc_data[i].y, acc_data[i].z);
+                xQueueSend(ce_acc_queue_global, &acc_data[i], 0);
+            }
+            
+        }
+
+        // if (buf_status >= 9600)
+        // {
+        //     printf("buf_status: %d\n", buf_status/6);
+        //     buf_status = 0;
+        // }
+
+
         // printf("%u %u %u %u %u %u\n", read_samples[0], read_samples[1], read_samples[2], read_samples[3], read_samples[4], read_samples[5]);
+        
+        
+
 #else
         // 임의 데이터 생성
         read_samples[0] = esp_random() % 256;
@@ -206,21 +249,6 @@ static void ce_kx022acr_task_nonstop(void * params)
         read_samples[4] = esp_random() % 256;
         read_samples[5] = esp_random() % 256;
 #endif
-        // uint8_t rx_data = 0x00;
-        // ce_kx022acr_read_reg_spi(kx022acr_device_handle, BUF_STATUS_1, &rx_data, 1);
-        // printf("[SENSOR] BUF_STATUS_1: %d\n", rx_data);
-
-        acc_data.x = ((int16_t)read_samples[1] << 8) | read_samples[0];
-        acc_data.y = ((int16_t)read_samples[3] << 8) | read_samples[2];
-        acc_data.z = ((int16_t)read_samples[5] << 8) | read_samples[4];
-        // printf("x:%d, y:%d, z:%d\n", acc_data.x, acc_data.y,acc_data.z);
-
-        if (buf_status >= 9600)
-        {
-            printf("buf_status: %d\n", buf_status);
-            buf_status = 0;
-        }
-        xQueueSend(ce_acc_queue_global, &acc_data, 0);
     }
 }
 
@@ -315,7 +343,7 @@ void init_sampling_timer()
         .callback = sample_timer_cb,
         .name = "kx_sample_timer"};
     esp_timer_create(&timer_args, &sample_timer);
-    esp_timer_start_periodic(sample_timer, 625); // 625us
+    esp_timer_start_periodic(sample_timer, 625*40); // 625us
 }
 
 ce_error_t ce_kx022acr_init_spi(void)
@@ -332,38 +360,51 @@ ce_error_t ce_kx022acr_init_spi(void)
     }
     uint8_t rx_data = 0x00;
 
-    ce_kx022acr_write_reg_spi(kx022acr_device_handle, 0x7F, 0x00);
+    uint8_t rx_data_whoami = 0x00;
 
-    // 센서 리셋
-    // ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL2, 0x80);
-    ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL2, 0xBF);
-    vTaskDelay(pdMS_TO_TICKS(2));
-
-    ce_kx022acr_write_reg_spi(kx022acr_device_handle, INC1, 0x10);
-
-    // Standby mode 설정
-    ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL1, 0x00);
-
-    // Stream mode 설정
-    ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CNTL1, 0x28);
-    ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CNTL2, 0xC1);
-
-    // Data rate 설정
-    ce_kx022acr_write_reg_spi(kx022acr_device_handle, ODCNTL, 0x0B); // 1600Hz 설정
-
-    // 센서 동작 시작 (PC1=1, RES=1 for High Resolution)
-    ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL1, 0xC1);
-
-    
-
-    ce_kx022acr_read_reg_spi(kx022acr_device_handle, WHO_AM_I, &rx_data, 1);
-    if (rx_data != 0xC8)
+    while (rx_data_whoami != 0xC8)
     {
-        printf("[SENSOR] WHO_AM_I 확인 실패: 0x%02X\n", rx_data);
-        return CE_ERROR_SENSOR_INIT;
-    }
+        ce_kx022acr_write_reg_spi(kx022acr_device_handle, 0x7F, 0x00);
 
-    printf("[SENSOR] WHO_AM_I 확인 성공: 0x%02X\n", rx_data);
+        // 센서 리셋
+        // ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL2, 0x80);
+        ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL2, 0xBF);
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+        ce_kx022acr_write_reg_spi(kx022acr_device_handle, INC1, 0x10);
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+        // Standby mode 설정
+        ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL1, 0x00);
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+        // Stream mode 설정
+        ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CNTL1, 0x2B);
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+        ce_kx022acr_write_reg_spi(kx022acr_device_handle, BUF_CNTL2, 0xC0);
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+        // Data rate 설정
+        ce_kx022acr_write_reg_spi(kx022acr_device_handle, ODCNTL, 0x0B); // 1600Hz 설정
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+        // 센서 동작 시작 (PC1=1, RES=1 for High Resolution)
+        ce_kx022acr_write_reg_spi(kx022acr_device_handle, CNTL1, 0xC1);
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+        ce_kx022acr_read_reg_spi(kx022acr_device_handle, WHO_AM_I, &rx_data_whoami, 1);
+        if (rx_data_whoami != 0xC8)
+        {
+            printf("[SENSOR] WHO_AM_I 확인 실패: 0x%02X\n", rx_data_whoami);
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            continue;
+            // break;
+        }
+
+        printf("[SENSOR] WHO_AM_I 확인 성공: 0x%02X\n", rx_data_whoami);
+        
+    }
 
     if (xTaskCreatePinnedToCore(ce_kx022acr_task_nonstop, "ce_kx022acr_task", 4096, &kx022acr_device_handle, 5, NULL, tskNO_AFFINITY) != pdPASS)
     {

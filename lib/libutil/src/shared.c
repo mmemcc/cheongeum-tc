@@ -1,6 +1,7 @@
-
 #include <ce/util/shared.h>
 #include <string.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 ce_error_t ce_global_update(void * value_for_update, void * data, size_t size, SemaphoreHandle_t mutex)
 {

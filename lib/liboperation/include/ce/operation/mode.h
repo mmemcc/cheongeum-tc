@@ -33,7 +33,7 @@ extern EventGroupHandle_t ce_mode_event_group_global;
 #define CE_SERVER_TASK_STACK_SIZE 2048
 #define CE_SENSOR_TASK_STACK_SIZE 2048
 #define CE_TC_TASK_STACK_SIZE 2048
-#define CE_CONTROL_RELAY_TASK_STACK_SIZE 2048
+#define CE_CONTROL_RELAY_TASK_STACK_SIZE 3000
 #define CE_CONSOLE_TASK_STACK_SIZE 2048
 
 extern TaskHandle_t ce_kx022acr_task_handle;

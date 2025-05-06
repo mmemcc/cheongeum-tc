@@ -16,7 +16,8 @@
 #include <ce/operation/test.h>
 #include <ce/sensor/sensors.h>
 
-#define SAMPLE_COUNT 500
+#define SAMPLE_COUNT_CURRENT 500
+#define SAMPLE_COUNT_TEMP 50
 
 SemaphoreHandle_t temp_sample_sem;
 esp_timer_handle_t temp_sample_timer;
@@ -31,19 +32,66 @@ void temp_sample_timer_cb(void *arg)
 
 ce_error_t ce_temperatures_read(float * temp, uint8_t sensor_ch, adc_oneshot_unit_handle_t adc_handle)
 {
-    // int adc_raw[0][0];
     int adc_raw;
     esp_err_t ret = ESP_OK;
+    float sum_temp = 0.0f;
+    float sum_squared = 0.0f;
+    float temp_samples[SAMPLE_COUNT_TEMP];
 
-    ret = adc_oneshot_read(adc_handle, sensor_ch, &adc_raw);
-    if (ret != ESP_OK) {
-        return CE_ERROR_SENSOR_READ;
+    // ret = adc_oneshot_read(adc_handle, sensor_ch, &adc_raw);
+    // if (ret != ESP_OK) {
+    //     return CE_ERROR_SENSOR_READ;
+    // }
+    // float voltage = (ADC_VREF*adc_raw)/4095.0;
+    // float resistance = (voltage * TMEP_SENSOR_R_25_DEGREE) / (ADC_VREF - voltage);
+    // float temp_c = 1.0/((1.0/(273.15+25.0)) + (log(resistance/TMEP_SENSOR_R_25_DEGREE)/3435.0)) - 273.15;
+
+    // *temp = temp_c;
+
+    // 여러 번 샘플링
+    for (int i = 0; i < SAMPLE_COUNT_TEMP; i++) {
+        ret = adc_oneshot_read(adc_handle, sensor_ch, &adc_raw);
+        if (ret != ESP_OK) {
+            return CE_ERROR_SENSOR_READ;
+        }
+
+        float voltage = (ADC_VREF * adc_raw) / 4095.0f;
+        float resistance = (voltage * TMEP_SENSOR_R_25_DEGREE) / (ADC_VREF - voltage);
+        float temp_c = 1.0f / ((1.0f / (273.15f + 25.0f)) + (log(resistance / TMEP_SENSOR_R_25_DEGREE) / 3435.0f)) - 273.15f;
+        
+        temp_samples[i] = temp_c;
+        sum_temp += temp_c;
+        
+        // 다음 샘플링을 위한 짧은 대기
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
-    float voltage = (ADC_VREF*adc_raw)/4095.0;
-    float resistance = (ADC_VREF*TMEP_SENSOR_R_25_DEGREE)/voltage - TMEP_SENSOR_R_25_DEGREE;
-    float temp_c = 1.0/((1.0/(273.15+25.0)) + (log(resistance/TMEP_SENSOR_R_25_DEGREE)/3435.0)) - 273.15;
 
-    *temp = temp_c;
+    // 평균 온도 계산
+    float mean_temp = sum_temp / SAMPLE_COUNT_TEMP;
+
+    // RMS 오차 계산
+    for (int i = 0; i < SAMPLE_COUNT_TEMP; i++) {
+        float diff = temp_samples[i] - mean_temp;
+        sum_squared += diff * diff;
+    }
+    float rms_error = sqrt(sum_squared / SAMPLE_COUNT_TEMP);
+
+    // RMS 오차가 큰 샘플들을 제외하고 평균 재계산
+    sum_temp = 0.0f;
+    int valid_samples = 0;
+    for (int i = 0; i < SAMPLE_COUNT_TEMP; i++) {
+        if (fabs(temp_samples[i] - mean_temp) <= 2.0f * rms_error) {  // 2*RMS 범위 내의 샘플만 사용
+            sum_temp += temp_samples[i];
+            valid_samples++;
+        }
+    }
+
+    if (valid_samples > 0) {
+        *temp = sum_temp / valid_samples;
+    } else {
+        *temp = mean_temp;  // 모든 샘플이 제외된 경우 원래 평균값 사용
+    }
+
     return CE_OK;
 
 }
@@ -51,30 +99,33 @@ ce_error_t ce_temperatures_read(float * temp, uint8_t sensor_ch, adc_oneshot_uni
 void ce_current_read(float * current, uint8_t sensor_ch, adc_oneshot_unit_handle_t adc_handle)
 {
     int adc_raw;
-
-    float samples[SAMPLE_COUNT];
-    float voltage_sum = 0.0;
-
-    // 샘플링 및 전압 변환
-    for (int i = 0; i < SAMPLE_COUNT; i++) {
-        adc_oneshot_read(adc_handle, sensor_ch, &adc_raw);
-        float v = (adc_raw * ADC_VREF) / 4095.0;
-        samples[i] = v;
-        voltage_sum += v;
-        esp_rom_delay_us(100); 
-    }
-
-    float offset = voltage_sum / SAMPLE_COUNT;
-
-    // RMS 계산
     float sum_sq = 0.0;
-    for (int i = 0; i < SAMPLE_COUNT; i++) {
-        float ac = samples[i] - offset;
-        sum_sq += ac * ac;
+    float voltage_rms = 0.0;
+
+   for (int i = 0; i < SAMPLE_COUNT_CURRENT; i++) {
+        esp_err_t ret = adc_oneshot_read(adc_handle, sensor_ch, &adc_raw);
+        if (ret != ESP_OK) continue;
+
+        // ADC → 전압
+        float voltage = ((float)adc_raw / 4095.0f) * ADC_VREF;
+
+        // 센서 기준 전압(0A 기준) 보정
+        float ac_voltage = voltage - ACS712_ZERO;
+        voltage_rms += voltage;
+
+        // RMS 제곱합 누적
+        sum_sq += ac_voltage * ac_voltage;
+
+        // 10kHz 샘플링
+        esp_rom_delay_us(100);
     }
 
-    float vrms = sqrt(sum_sq / SAMPLE_COUNT);
-    *current = vrms / 0.1;  // 0.1V per A (센서 비율)
+    // 전압 RMS → 전류 RMS
+    float vrms = sqrtf(sum_sq / SAMPLE_COUNT_CURRENT);
+
+    float vrms_offset = voltage_rms / SAMPLE_COUNT_CURRENT;
+    // printf("vrms_offset: %f\n", vrms_offset);
+    *current = vrms / ACS712_5A_RATIO;  // I = Vrms / (mV per A)
 
 }
 
@@ -147,6 +198,10 @@ ce_error_t ce_temperatures_set_pin(adc_oneshot_unit_handle_t *adc1_handle)
     //     .check_h = 0x00
     // };
 
+    ret = adc_oneshot_config_channel(*adc1_handle, CURRENT_ADC_CHANNLE, &adc1_chan_config);
+    if (ret != ESP_OK) {
+        return CE_ERROR_SENSOR_INIT;
+    }
 
     ret = adc_oneshot_config_channel(*adc1_handle, TMEP_ADC_CHANNLE_1, &adc1_chan_config);
     if (ret != ESP_OK) {
@@ -172,11 +227,11 @@ ce_error_t ce_temperatures_set_pin(adc_oneshot_unit_handle_t *adc1_handle)
     if (ret != ESP_OK) {
         return CE_ERROR_SENSOR_INIT;
     }
-    ret = adc_oneshot_config_channel(*adc1_handle, 6, &adc1_chan_config);
+    ret = adc_oneshot_config_channel(*adc1_handle, TMEP_ADC_CHANNLE_7, &adc1_chan_config);
     if (ret != ESP_OK) {
         return CE_ERROR_SENSOR_INIT;
     }
-    ret = adc_oneshot_config_channel(*adc1_handle, 7, &adc1_chan_config);
+    ret = adc_oneshot_config_channel(*adc1_handle, TMEP_ADC_CHANNLE_8, &adc1_chan_config);
     if (ret != ESP_OK) {
         return CE_ERROR_SENSOR_INIT;
     }
@@ -195,21 +250,27 @@ static void ce_temperatures_task_nonstop(void * params)
         for (int i = 0; i < 6; i++)
         {
 #if SENSOR_REAL
-            ce_temperatures_read(&env_sensor_data.temp[i], i, adc1_handle);
-            
+            ce_temperatures_read(&env_sensor_data.temp[i], i+1, adc1_handle);
+            // printf("temp[%d]: %f\n", i, env_sensor_data.temp[i]);
 
 #else
             temp[i] = esp_random() % 100; // 임의 데이터 생성
 #endif
         }
 
-        ce_current_read(&env_sensor_data.current[0], 6, adc1_handle);
-        ce_current_read(&env_sensor_data.current[1], 7, adc1_handle);
+        ce_current_read(&env_sensor_data.current[0], CURRENT_ADC_CHANNLE, adc1_handle);
+        // printf("COMP Current: %f\n", env_sensor_data.current[0]);
+
         env_sensor_data.humi_temp[0] = 0;
         env_sensor_data.humi_temp[1] = 0;
-        ce_humi_temp_read(env_sensor_data.humi_temp, HUMI_TEMP_UART_PORT_NUM);
+        // ce_humi_temp_read(env_sensor_data.humi_temp, HUMI_TEMP_UART_PORT_NUM);
+        ce_temperatures_read(&env_sensor_data.humi_temp[0], TMEP_ADC_CHANNLE_8, adc1_handle);
+        ce_relay_temp_control_global.current_temp = env_sensor_data.humi_temp[0];
+
+        printf("current_temp: %f\n", ce_relay_temp_control_global.current_temp);
 
         xQueueSend(ce_temperatures_queue_global, &env_sensor_data, 0);
+        ce_env_sensor_data_global = env_sensor_data;
     }
 }
 
@@ -235,6 +296,7 @@ static void ce_temperatures_task_onoff(void *params)
             {
                 ce_temperatures_read(&temp[i], i, adc1_handle);
             }
+
             
             xQueueSend(ce_temperatures_queue_global, temp, 0);
         }

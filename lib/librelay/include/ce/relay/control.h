@@ -9,7 +9,7 @@
 #include <freertos/semphr.h>
 
 #include <ce/util/error.h>
-
+#include <ce/tc/esp32.h>
 /* TODO: Relay 개수와 연결 장비에 따라 relay contol 조정 구현
     - Relay 개수: 최대 6개
     - 연결 장비 종류: Comp, Fan, Def, AUX/Light
@@ -21,41 +21,56 @@
 
 #define MAX_RELAYS 4
 
-#define RELAY_COMP_PIN 45
-#define RELAY_FAN_PIN 3
-#define RELAY_DEF_PIN 19
-#define RELAY_AUX_LIGHT_PIN 20
+#define RELAY_COMP_PIN RELAY_COMP_IO
+#define RELAY_FAN_PIN RELAY_FAN_IO
+#define RELAY_DEF_PIN RELAY_DEF_IO
+#define RELAY_AUX_LIGHT_PIN RELAY_AUX_LIGHT_IO
 
 #define RELAY_COMP 0
 #define RELAY_FAN 1
 #define RELAY_DEF 2
 #define RELAY_AUX_LIGHT 3
 
-
 #define RELAY_STATE_CHANGE_BIT1 BIT0
 #define RELAY_STATE_CHANGE_BIT2 BIT1
 #define RELAY_STATE_CHANGE_BIT3 BIT2
 
+#define RELAY_CONTROL_CASE_MANUAL false
+#define RELAY_CONTROL_CASE_AUTO true
 typedef struct 
 {
     uint8_t relay_pin; // GPIO pin number
     uint8_t relay_load; // 0: comp, 1: fan, 2: def, 3: aux/light
-    bool relay_connection; // 0: not connected, 1: connected
 
+    bool relay_connection; // 0: not connected, 1: connected
     bool relay_state; // 0: off, 1: on
+    bool relay_control_case; // 0: manual, 1: auto
+    bool relay_control_value; // 0: off, 1: on
+
     EventGroupHandle_t relay_state_set_event_group; // Event Group
     SemaphoreHandle_t relay_mutex; // Mutex
 } ce_relay_state_t;
 
+extern ce_relay_state_t ce_relay_state_global[MAX_RELAYS];
 
 // [comp, fan, def, aux/light]
 typedef struct
 {
     bool relay_connection[MAX_RELAYS]; // 0: not connected, 1: connected
     bool relay_state[MAX_RELAYS]; // 0: off, 1: on
+    bool relay_control_case[MAX_RELAYS]; // 0: manual, 1: auto
+    bool relay_control_value[MAX_RELAYS]; // 0: off, 1: on
 } ce_relay_state_set_t;
 
-extern ce_relay_state_t ce_relay_state_global[MAX_RELAYS];
+// 온도 제어 
+typedef struct
+{
+    float current_temp;
+    float target_temp;
+    SemaphoreHandle_t relay_temp_mutex;
+} ce_relay_temp_control_t;
+
+extern ce_relay_temp_control_t ce_relay_temp_control_global;
 
 extern QueueHandle_t ce_relay_state_queue_global;
 

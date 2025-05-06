@@ -9,6 +9,8 @@
 #include <esp_log.h>
 
 #include <ce/server/wifi.h>
+#include <ce/tc/tc_state.h>
+#include <ce/util/semaphore.h>
 
 static int retry_count = 0;
 wifi_ap_record_t ap_info;
@@ -29,6 +31,9 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
     {
         esp_wifi_sta_get_ap_info(&ap_info);
         ESP_LOGI(TAG, "Connected to AP: %s", ap_info.ssid);
+        uint8_t wifi_connected = 1;
+        ce_global_update(&tc_state_global.wifi_connected, &wifi_connected, sizeof(uint8_t), tc_state_global.tc_state_mutex);
+
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
@@ -37,11 +42,14 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
             esp_wifi_connect();
             retry_count++;
             ESP_LOGI(TAG, "Retrying to connect to the AP...");
+            
         }
         else
         {
             xEventGroupClearBits(wifi_event_group, WIFI_CONNECTED_BIT);
         }
+        uint8_t wifi_connected = 2;
+        ce_global_update(&tc_state_global.wifi_connected, &wifi_connected, sizeof(uint8_t), tc_state_global.tc_state_mutex);
         ESP_LOGI(TAG, "Failed to connect to the AP");
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)

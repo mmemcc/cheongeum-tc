@@ -7,12 +7,12 @@
 #include <driver/i2c_master.h>
 
 #include <ce/util/error.h>
+#include <ce/tc/esp32.h>
 
-
-#define KX022ACR_SPI_PIN_MOSI 11
-#define KX022ACR_SPI_PIN_MISO 13
-#define KX022ACR_SPI_PIN_CLK 12
-#define KX022ACR_SPI_PIN_CS0 10
+#define KX022ACR_SPI_PIN_MOSI SPI2_MOSI
+#define KX022ACR_SPI_PIN_MISO SPI2_MISO
+#define KX022ACR_SPI_PIN_CLK SPI2_CLK
+#define KX022ACR_SPI_PIN_CS0 SPI2_CS0
 
 #define KX022ACR_I2C_PIN_SDA 13
 #define KX022ACR_I2C_PIN_SCL 12

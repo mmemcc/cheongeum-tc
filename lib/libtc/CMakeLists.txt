@@ -1,5 +1,5 @@
 
-set(private_requires "liboperation" "libutil" "libsensor" "librelay" "libserver")
+set(private_requires "liboperation" "libutil" "libsensor" "librelay" "libserver" "esp_lcd")
 
 file(GLOB SOURCES "src/*.c")
 

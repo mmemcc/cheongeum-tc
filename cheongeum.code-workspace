@@ -5,6 +5,20 @@
     }
   ],
   "settings": {
+    "files.associations": {
+      "freertos.h": "c",
+      "compare": "c",
+      "cstdint": "c",
+      "gpio.h": "c",
+      "test_ledc_utils.h": "c",
+      "spi_master.h": "c",
+      "esp_lcd_panel_ops.h": "c",
+      "esp_lcd_panel_io.h": "c",
+      "cjson.h": "c",
+      "kx022acr.h": "c",
+      "shared.h": "c",
+      "st7789_147inch.h": "c"
+    }
     // "idf.preFlashTask": "erase-flash"
     // "idf.preFlashTask": "source /opt/esp/idf/export.sh && idf.py erase-flash",
   },
