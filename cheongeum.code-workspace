@@ -17,7 +17,14 @@
       "cjson.h": "c",
       "kx022acr.h": "c",
       "shared.h": "c",
-      "st7789_147inch.h": "c"
+      "st7789_147inch.h": "c",
+      "error.h": "c",
+      "tc_state.h": "c",
+      "ledc.h": "c",
+      "esp_lcd_panel_commands.h": "c",
+      "esp_lcd_panel_interface.h": "c",
+      "stdarg.h": "c",
+      "sensors.h": "c"
     }
     // "idf.preFlashTask": "erase-flash"
     // "idf.preFlashTask": "source /opt/esp/idf/export.sh && idf.py erase-flash",

@@ -17,7 +17,9 @@
 #include <ce/server/server_upload.h>
 #include <ce/server/mqtt_server.h>
 #include <ce/tc/display.h>
+#include <ce/tc/st7789_147inch.h>
 #include <ce/tc/tc_state.h>
+
 // 전역 변수 초기화
 ce_relay_state_t ce_relay_state_global[MAX_RELAYS];
 ce_relay_temp_control_t ce_relay_temp_control_global;
@@ -46,6 +48,7 @@ void app_main(void) {
     tc_state_global.warning_connected = 0;
     tc_state_global.machine_condition = 0;
 
+
     // mode, task 초기화화
     ce_mode_event_group_global = xEventGroupCreate();
     ce_relay_temp_control_global.relay_temp_mutex = xSemaphoreCreateMutex();
@@ -69,6 +72,8 @@ void app_main(void) {
     //     printf("ce_st7789_init failed\n");
     // }
 
+    display_init();
+
     ce_relay_init();
     // if(ce_kx022acr_init_i2c() != CE_OK) {
     //     printf("ce_kx022acr_init_i2c failed\n");
@@ -83,5 +88,8 @@ void app_main(void) {
     //     printf("ce_server_upload_init failed\n");
     // }
 
+    
     mqtt_init();
+
+    
 }

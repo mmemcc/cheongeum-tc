@@ -45,6 +45,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
+    uint8_t mqtt_connected = 0;
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
@@ -58,12 +59,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         msg_id = esp_mqtt_client_subscribe(client, "esp32/mode", 1);
         ESP_LOGI(TAG, "sent subscribe successful for mode, msg_id=%d", msg_id);
 
-        uint8_t mqtt_connected = 1;
+        mqtt_connected = 1;
         ce_global_update(&tc_state_global.mqtt_connected, &mqtt_connected, sizeof(uint8_t), tc_state_global.tc_state_mutex);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-        uint8_t mqtt_connected = 2;
+        mqtt_connected = 2;
         ce_global_update(&tc_state_global.mqtt_connected, &mqtt_connected, sizeof(uint8_t), tc_state_global.tc_state_mutex);
         break;
 
@@ -71,7 +72,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         // ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
         // msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
         // ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-        uint8_t mqtt_connected = 4;
+        mqtt_connected = 4;
         ce_global_update(&tc_state_global.mqtt_connected, &mqtt_connected, sizeof(uint8_t), tc_state_global.tc_state_mutex);
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
@@ -79,7 +80,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
     case MQTT_EVENT_PUBLISHED:
         // ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-        uint8_t mqtt_connected = 4;
+        mqtt_connected = 4;
         ce_global_update(&tc_state_global.mqtt_connected, &mqtt_connected, sizeof(uint8_t), tc_state_global.tc_state_mutex);
         break;
     case MQTT_EVENT_DATA:
@@ -87,7 +88,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
 
-        uint8_t mqtt_connected = 4;
+        mqtt_connected = 4;
         ce_global_update(&tc_state_global.mqtt_connected, &mqtt_connected, sizeof(uint8_t), tc_state_global.tc_state_mutex);
 
         cJSON *root = cJSON_Parse(event->data);

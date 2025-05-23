@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include <ce/tc/esp32.h>
+#include <ce/util/error.h>
 
 #define LCD_MOSI SPI3_MOSI
 #define LCD_CLK SPI3_CLK
@@ -61,7 +62,7 @@ typedef struct {
     uint8_t brightness;          // 0‑100%
 
     /* 상단 Progress bar */
-    uint8_t machine_condition;   // 0‑100 %
+    float machine_condition;   // 0‑100 %
 
     /* 온도 / 에너지 */
     float temp_internal;       // °C or °F
@@ -83,25 +84,44 @@ typedef struct {
     uint8_t status_led;          // 1:OFF 2:WARN 3:고장 4:동작중, 5:없음(회색)
 } tcui_state_t;
 
+typedef struct {
+    const uint16_t* bm;
+    uint8_t* st;
+    uint16_t x;
+} device_icon_t;
+
+typedef struct {
+    char      buf[16];
+    uint16_t  x, y;
+    uint8_t   sc, sp;
+    uint16_t  bg;          /* NULL == clear 안함 */
+    const char *format;
+} dyn_field_t;
+
+#define DEVICE_ICON_COMP_X DEV_START_X + 0*(DEV_ICON_W+DEV_GAP)
+#define DEVICE_ICON_DEF_X DEV_START_X + 1*(DEV_ICON_W+DEV_GAP)
+#define DEVICE_ICON_FAN_X DEV_START_X + 2*(DEV_ICON_W+DEV_GAP)
+#define DEVICE_ICON_LED_X DEV_START_X + 3*(DEV_ICON_W+DEV_GAP)
+
 // 폰트, 비트맵 파일
-const uint8_t font5x7[][5];
+extern const uint8_t font5x7[][5];
 
-const uint16_t logo_bitmap[28 * 28];
+extern const uint16_t logo_bitmap[28 * 28];
 
-const uint16_t warning_bitmap[28 * 28];
-const uint16_t alarm_bitmap[28 * 28];
-const uint16_t cloud_bitmap[28 * 28];
-const uint16_t wifi_bitmap[28 * 28];
+extern const uint16_t warning_bitmap[28 * 28];
+extern const uint16_t alarm_bitmap[28 * 28];
+extern const uint16_t cloud_bitmap[28 * 28];
+extern const uint16_t wifi_bitmap[28 * 28];
 
-const uint16_t comp_bitmap[28 * 28];
-const uint16_t def_bitmap[28 * 28];
-const uint16_t fan_bitmap[28 * 28];
-const uint16_t led_bitmap[28 * 28];
+extern const uint16_t comp_bitmap[28 * 28];
+extern const uint16_t def_bitmap[28 * 28];
+extern const uint16_t fan_bitmap[28 * 28];
+extern const uint16_t led_bitmap[28 * 28];
 
-const uint16_t temp_bitmap[28 * 28];
-const uint16_t current_bitmap[28 * 28];
+extern const uint16_t temp_bitmap[28 * 28];
+extern const uint16_t current_bitmap[28 * 28];
 
-
+ce_error_t display_init(void);
 
 
 

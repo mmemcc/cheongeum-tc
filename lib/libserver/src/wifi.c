@@ -10,7 +10,7 @@
 
 #include <ce/server/wifi.h>
 #include <ce/tc/tc_state.h>
-#include <ce/util/semaphore.h>
+#include <ce/util/shared.h>
 
 static int retry_count = 0;
 wifi_ap_record_t ap_info;

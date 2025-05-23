@@ -10,7 +10,7 @@ typedef struct {
     uint8_t wifi_connected;
     uint8_t alarm_connected;
     uint8_t warning_connected;
-    uint8_t machine_condition;
+    float machine_condition;
     SemaphoreHandle_t tc_state_mutex;
 } tc_state_t;
 
