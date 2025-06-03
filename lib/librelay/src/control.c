@@ -1,8 +1,12 @@
 #include <string.h>
+#include <ctype.h>
+#include <stdio.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <driver/gpio.h>
+#include <esp_console.h>
+#include <driver/uart.h>
 
 #include <ce/relay/control.h>
 #include <ce/operation/test.h>
@@ -283,7 +287,8 @@ static void relay_control_task(void *pvParameters)
 ce_error_t ce_relay_init(void)
 {
     ce_error_t err = CE_OK;
-    bool relay_connection[MAX_RELAYS] = {true, false, false, false};
+    bool relay_connection[MAX_RELAYS] = {false};
+    
     err = ce_relay_control_init(relay_connection);
 
     if (xTaskCreatePinnedToCore(relay_control_task, "relay_control_task", CE_CONTROL_RELAY_TASK_STACK_SIZE, NULL, CE_CONTROL_RELAY_TASK_PRIORITY, NULL, 0) != pdPASS) {

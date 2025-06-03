@@ -21,12 +21,12 @@
 #define SPI3_CS0 41
 #define SPI3_CLK 42
 
-
 #define UART1_TX 17
 #define UART1_RX 18
 
-#define UART2_TX 38
-#define UART2_RX 39
+#define I2C_SDA 38
+#define I2C_SCL 39
+
 #define UART2_DE 21
 
 #define RELAY_COMP_IO 45

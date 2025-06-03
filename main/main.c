@@ -19,6 +19,7 @@
 #include <ce/tc/display.h>
 #include <ce/tc/st7789_147inch.h>
 #include <ce/tc/tc_state.h>
+#include <ce/util/user_command.h>
 
 // 전역 변수 초기화
 ce_relay_state_t ce_relay_state_global[MAX_RELAYS];
@@ -49,7 +50,7 @@ void app_main(void) {
     tc_state_global.machine_condition = 0;
 
 
-    // mode, task 초기화화
+    // mode, task 초기화
     ce_mode_event_group_global = xEventGroupCreate();
     ce_relay_temp_control_global.relay_temp_mutex = xSemaphoreCreateMutex();
     ce_mode_init();
@@ -90,6 +91,10 @@ void app_main(void) {
 
     
     mqtt_init();
+
+    ce_cmd_init();
+    ce_cmd_start_console_task();
+    
 
     
 }

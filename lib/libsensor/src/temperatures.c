@@ -10,11 +10,13 @@
 #include <esp_random.h>
 #include <esp_rom_sys.h>
 #include <driver/uart.h>
+#include <driver/i2c_master.h>
 
 #include <ce/sensor/temperatures.h>
 #include <ce/relay/control.h>
 #include <ce/operation/test.h>
 #include <ce/sensor/sensors.h>
+#include <ce/sensor/sht4x.h>
 
 #define SAMPLE_COUNT_CURRENT 500
 #define SAMPLE_COUNT_TEMP 50
@@ -22,6 +24,12 @@
 SemaphoreHandle_t temp_sample_sem;
 esp_timer_handle_t temp_sample_timer;
 TaskHandle_t ce_temperatures_task_handle;
+
+typedef struct {
+    i2c_master_dev_handle_t i2c_dev;
+    adc_oneshot_unit_handle_t adc_handle;
+} ce_temperatures_task_param_t;
+
 
 void temp_sample_timer_cb(void *arg)
 {
@@ -170,21 +178,21 @@ ce_error_t ce_temperatures_set_pin(adc_oneshot_unit_handle_t *adc1_handle)
         .atten = ADC_ATTEN_DB_12,
     };
 
-    if (uart_driver_install(HUMI_TEMP_UART_PORT_NUM, 2 * 1024, 0, 0, NULL, 0) != ESP_OK) {
-        return CE_ERROR_SENSOR_INIT;
-    }
+    // if (uart_driver_install(HUMI_TEMP_UART_PORT_NUM, 2 * 1024, 0, 0, NULL, 0) != ESP_OK) {
+    //     return CE_ERROR_SENSOR_INIT;
+    // }
 
-    uart_config_t uart_config = {
-        .baud_rate = 9600,
-        .data_bits = UART_DATA_8_BITS,
-        .parity    = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk = UART_SCLK_DEFAULT,
-    };
+    // uart_config_t uart_config = {
+    //     .baud_rate = 9600,
+    //     .data_bits = UART_DATA_8_BITS,
+    //     .parity    = UART_PARITY_DISABLE,
+    //     .stop_bits = UART_STOP_BITS_1,
+    //     .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    //     .source_clk = UART_SCLK_DEFAULT,
+    // };
 
-    uart_param_config(HUMI_TEMP_UART_PORT_NUM, &uart_config);
-    uart_set_pin(HUMI_TEMP_UART_PORT_NUM, HUMI_TEMP_UART_TX, HUMI_TEMP_UART_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    // uart_param_config(HUMI_TEMP_UART_PORT_NUM, &uart_config);
+    // uart_set_pin(HUMI_TEMP_UART_PORT_NUM, HUMI_TEMP_UART_TX, HUMI_TEMP_UART_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
     // // 온습도 센서 설정
     // ce_humi_temp_frame_t humi_temp_frame = {
@@ -240,7 +248,13 @@ ce_error_t ce_temperatures_set_pin(adc_oneshot_unit_handle_t *adc1_handle)
 
 static void ce_temperatures_task_nonstop(void * params)
 {
-    adc_oneshot_unit_handle_t adc1_handle = *((adc_oneshot_unit_handle_t *)params);
+    // adc_oneshot_unit_handle_t adc1_handle = *((adc_oneshot_unit_handle_t *)params);
+    ce_temperatures_task_param_t *task_param = (ce_temperatures_task_param_t *)params;
+
+    i2c_master_dev_handle_t sht4x_i2c_dev = task_param->i2c_dev;
+    adc_oneshot_unit_handle_t adc1_handle = task_param->adc_handle;
+
+
     ce_env_sensor_data_t env_sensor_data;
 
     while(1) 
@@ -261,13 +275,19 @@ static void ce_temperatures_task_nonstop(void * params)
         ce_current_read(&env_sensor_data.current[0], CURRENT_ADC_CHANNLE, adc1_handle);
         // printf("COMP Current: %f\n", env_sensor_data.current[0]);
 
-        env_sensor_data.humi_temp[0] = 0;
-        env_sensor_data.humi_temp[1] = 0;
         // ce_humi_temp_read(env_sensor_data.humi_temp, HUMI_TEMP_UART_PORT_NUM);
-        ce_temperatures_read(&env_sensor_data.humi_temp[0], TMEP_ADC_CHANNLE_8, adc1_handle);
+        
+        float temperature = 0;
+        float humidity = 0;
+        sht4x_measure_blocking_read(sht4x_i2c_dev, &temperature, &humidity);
+        // printf("humi_temp[0]: %f, humi_temp[1]: %f\n", temperature, humidity);
+
+        env_sensor_data.humi_temp[0] = temperature;
+        env_sensor_data.humi_temp[1] = humidity;
+
         ce_relay_temp_control_global.current_temp = env_sensor_data.humi_temp[0];
 
-        printf("current_temp: %f\n", ce_relay_temp_control_global.current_temp);
+        // printf("current_temp: %f\n", ce_relay_temp_control_global.current_temp);
 
         xQueueSend(ce_temperatures_queue_global, &env_sensor_data, 0);
         ce_env_sensor_data_global = env_sensor_data;
@@ -313,6 +333,8 @@ void init_temp_sampling_timer()
     esp_timer_start_periodic(temp_sample_timer, 1000000); // 1초
 }
 
+
+
 ce_error_t ce_temperatures_init(void)
 {
     adc_oneshot_unit_handle_t adc1_handle = NULL;
@@ -322,10 +344,23 @@ ce_error_t ce_temperatures_init(void)
         return err;
     }
 
+    i2c_master_dev_handle_t sht4x_i2c_dev;
+    err = ce_sht4x_init(&sht4x_i2c_dev);
+    if (err != CE_OK)
+    {
+        return err;
+    }
+
+    ce_temperatures_task_param_t task_param = {
+        .i2c_dev = sht4x_i2c_dev,
+        .adc_handle = adc1_handle,
+    };
+
+
     init_temp_sampling_timer();
 
     
-    if (xTaskCreatePinnedToCore(ce_temperatures_task_nonstop, "ce_temperatures_task", 4000, &adc1_handle, 5, &ce_temperatures_task_handle, 0) != pdPASS)
+    if (xTaskCreatePinnedToCore(ce_temperatures_task_nonstop, "ce_temperatures_task", 4000, &task_param, 5, &ce_temperatures_task_handle, 0) != pdPASS)
     {
         return CE_ERROR_TASK_CREATE;
     }

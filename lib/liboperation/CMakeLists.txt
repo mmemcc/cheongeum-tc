@@ -1,7 +1,7 @@
 
 file(GLOB SOURCES "src/*.c")
 
-set(requires "log" "esp_common" "freertos" "driver" "esp_wifi" "nvs_flash")
+set(requires "log" "esp_common" "freertos" "driver" "esp_wifi" "nvs_flash" "console")
 set(private_requires "libutil" "libsensor" "librelay" "libserver" "libtc")
 
 idf_component_register(
