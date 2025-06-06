@@ -287,7 +287,7 @@ static void relay_control_task(void *pvParameters)
 ce_error_t ce_relay_init(void)
 {
     ce_error_t err = CE_OK;
-    bool relay_connection[MAX_RELAYS] = {false};
+    bool relay_connection[MAX_RELAYS] = {true, false, false, false};
     
     err = ce_relay_control_init(relay_connection);
 

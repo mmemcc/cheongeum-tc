@@ -92,8 +92,8 @@ void app_main(void) {
     
     mqtt_init();
 
-    ce_cmd_init();
-    ce_cmd_start_console_task();
+    // ce_cmd_init();
+    // ce_cmd_start_console_task();
     
 
     
