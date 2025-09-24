@@ -79,9 +79,9 @@ void app_main(void) {
     // if(ce_kx022acr_init_i2c() != CE_OK) {
     //     printf("ce_kx022acr_init_i2c failed\n");
     // }
-    if(ce_kx022acr_init_spi() != CE_OK) {
-        printf("ce_kx022acr_init_spi failed\n");
-    }
+    // if(ce_kx022acr_init_spi() != CE_OK) {
+    //     printf("ce_kx022acr_init_spi failed\n");
+    // }
     if(ce_temperatures_init() != CE_OK) {
         printf("ce_temperatures_init failed\n");
     }

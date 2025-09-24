@@ -1,8 +1,8 @@
 {
     "idf.pythonInstallPath": "/usr/bin/python3",
-    "idf.port": "/dev/ttyACM0",
-    "idf.espIdfPath": "/opt/esp/idf",
-    "idf.toolsPath": "/opt/esp",
+    "idf.port": "/dev/ttyACM1",
+    "idf.espIdfPath": "/home/mmemcc/esp/v5.5/esp-idf",
+    "idf.toolsPath": "/home/mmemcc/.espressif",
     "idf.customExtraVars": {
         "IDF_TARGET": "esp32s3"
     },

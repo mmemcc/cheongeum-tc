@@ -15,6 +15,66 @@ ce_error_t ce_sht4x_init(i2c_master_dev_handle_t *ret_handle) {
         .i2c_port = -1,
         .sda_io_num = SHT4X_I2C_SDA,
         .scl_io_num = SHT4X_I2C_SCL,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = false,

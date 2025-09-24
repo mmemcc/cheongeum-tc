@@ -219,10 +219,13 @@ static void relay_control_task(void *pvParameters)
                 break;
             case RELAY_CONTROL_CASE_AUTO:
                 bool state = false;
-                if (ce_relay_temp_control_global.current_temp > ce_relay_temp_control_global.target_temp) {
+                if (ce_relay_temp_control_global.current_temp > ce_relay_temp_control_global.target_temp + 2) 
+                {
                     state = true;
                     gpio_set_level(RELAY_COMP_PIN, 1);
-                } else {
+                } 
+                else if (ce_relay_temp_control_global.current_temp < ce_relay_temp_control_global.target_temp - 2)
+                {
                     state = false;
                     gpio_set_level(RELAY_COMP_PIN, 0);
                 }
@@ -240,10 +243,13 @@ static void relay_control_task(void *pvParameters)
                 break;
             case RELAY_CONTROL_CASE_AUTO:
                 bool state = false;
-                if (ce_relay_temp_control_global.current_temp > ce_relay_temp_control_global.target_temp) {
+                if (ce_relay_temp_control_global.current_temp > ce_relay_temp_control_global.target_temp + 2) 
+                {
                     state = true;
                     gpio_set_level(RELAY_FAN_PIN, 1);
-                } else {
+                } 
+                else if (ce_relay_temp_control_global.current_temp < ce_relay_temp_control_global.target_temp - 2) 
+                {
                     state = false;
                     gpio_set_level(RELAY_FAN_PIN, 0);
                 }
